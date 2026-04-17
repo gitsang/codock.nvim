@@ -1,22 +1,6 @@
 local M = {}
 local utils = require("codock.utils")
 
----Get visual selection range
----@return integer start_line, integer end_line
-local function get_visual_range()
-	local visual_mode = vim.fn.visualmode()
-	local start_line = vim.fn.line("'<")
-	local end_line = vim.fn.line("'>")
-
-	if visual_mode == "" then
-		-- Not in visual mode, use current line
-		start_line = vim.fn.line(".")
-		end_line = start_line
-	end
-
-	return start_line, end_line
-end
-
 ---Format a diagnostic as a string
 ---@param diagnostic table diagnostic info
 ---@return string
@@ -36,7 +20,7 @@ end
 ---@return string prompt
 local function get_diagnostics_prompt()
 	local current_file = utils.get_current_file()
-	local start_line, end_line = get_visual_range()
+	local start_line, end_line = utils.get_visual_range()
 	local buf = vim.api.nvim_get_current_buf()
 
 	-- Get all diagnostics for the buffer

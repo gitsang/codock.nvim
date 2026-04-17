@@ -1,5 +1,21 @@
 local M = {}
 
+---Get visual selection range
+---@return integer start_line, integer end_line
+function M.get_visual_range()
+	local visual_mode = vim.fn.visualmode()
+	local start_line = vim.fn.line("'<")
+	local end_line = vim.fn.line("'>")
+
+	if visual_mode == "" then
+		-- Not in visual mode, use current line
+		start_line = vim.fn.line(".")
+		end_line = start_line
+	end
+
+	return start_line, end_line
+end
+
 ---Find codock terminal buffer
 ---@return integer|nil bufnr
 function M.find_codock_terminal()
