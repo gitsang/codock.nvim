@@ -72,4 +72,51 @@ function M.get_current_file()
 	return vim.fn.fnamemodify(abs_path, ":.")
 end
 
+---Get visual selection text
+---@return string
+function M.get_visual_selection_text()
+	local visual_mode = vim.fn.visualmode()
+	local bufnr = vim.api.nvim_get_current_buf()
+
+	if visual_mode == "" then
+		return vim.api.nvim_get_current_line()
+	end
+
+	local start_pos = vim.fn.getpos("'<")
+	local end_pos = vim.fn.getpos("'>")
+	local start_line, start_col = start_pos[2], start_pos[3]
+	local end_line, end_col = end_pos[2], end_pos[3]
+
+	if start_line > end_line or (start_line == end_line and start_col > end_col) then
+		start_line, end_line = end_line, start_line
+		start_col, end_col = end_col, start_col
+	end
+
+	local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
+	if #lines == 0 then
+		return ""
+	end
+
+	if visual_mode == "V" then
+		return table.concat(lines, "\n")
+	end
+
+	if visual_mode == "\022" then
+		for i, line in ipairs(lines) do
+			lines[i] = string.sub(line, start_col, end_col)
+		end
+
+		return table.concat(lines, "\n")
+	end
+
+	if #lines == 1 then
+		return string.sub(lines[1], start_col, end_col)
+	end
+
+	lines[1] = string.sub(lines[1], start_col)
+	lines[#lines] = string.sub(lines[#lines], 1, end_col)
+
+	return table.concat(lines, "\n")
+end
+
 return M
