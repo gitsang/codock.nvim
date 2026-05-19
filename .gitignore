@@ -10,3 +10,10 @@ build/
 # IDE
 .vscode/
 .idea/
+
+# Agents
+.claude
+.codex
+.omx
+.sisyphus
+.team-debate
