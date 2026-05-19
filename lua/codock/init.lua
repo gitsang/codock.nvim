@@ -1,6 +1,22 @@
 local M = {}
 local utils = require("codock.utils")
 
+---Move a codock terminal window to the latest output.
+---
+---Neovim only tails terminal output while the terminal cursor is on the last
+---line. Leaving terminal-mode early can leave the inactive window cursor at an
+---older line, so put it back on the current last line before focus moves away.
+---@param win integer terminal window
+---@param buf integer terminal buffer
+local function scroll_terminal_to_bottom(win, buf)
+	if not vim.api.nvim_win_is_valid(win) or not vim.api.nvim_buf_is_valid(buf) then
+		return
+	end
+
+	local line_count = vim.api.nvim_buf_line_count(buf)
+	pcall(vim.api.nvim_win_set_cursor, win, { line_count, 0 })
+end
+
 ---Get visual position string from current buffer and selection
 ---@return string position_string
 local function get_visual_pos()
@@ -150,6 +166,15 @@ local function open_codock_terminal(width, codock_cmd, fixed_width, augroup)
 			if vim.api.nvim_get_current_win() == win then
 				vim.cmd("startinsert")
 			end
+		end,
+	})
+
+	-- Keep Neovim's native terminal tailing active after the window loses focus.
+	vim.api.nvim_create_autocmd({ "TermLeave", "WinLeave" }, {
+		group = augroup,
+		buffer = buf,
+		callback = function()
+			scroll_terminal_to_bottom(win, buf)
 		end,
 	})
 
