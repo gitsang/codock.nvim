@@ -87,8 +87,9 @@ local function send_to_terminal(text)
 	return false
 end
 
----Copy visual position to system clipboard and send to codock terminal
+---Copy visual position to registers and optionally system clipboard
 ---@param copy_to_clipboard? boolean whether to copy to system clipboard
+---@return string file_position formatted file position
 local function copy_visual_pos(copy_to_clipboard)
 	local current_file = utils.get_current_file()
 	local visual_pos = get_visual_pos()
@@ -123,8 +124,7 @@ local function copy_visual_pos(copy_to_clipboard)
 		vim.notify("Copied to register: " .. result .. " (paste with p)", vim.log.levels.INFO)
 	end
 
-	-- Return data for terminal sending
-	return current_file, visual_pos
+	return result
 end
 
 ---Open codock terminal in vertical split
@@ -192,23 +192,29 @@ end
 ---@field copy_to_clipboard? boolean
 ---@field actions? CodockAction[]
 
----Handle CodockFilePos command
+---Handle CodockFilePosYank command
+---@param copy_to_clipboard boolean whether to copy to clipboard
+local function handle_codock_filepos_yank(copy_to_clipboard)
+	copy_visual_pos(copy_to_clipboard)
+end
+
+---Handle CodockFilePosPaste command
 ---@param copy_to_clipboard boolean whether to copy to clipboard
 ---@param width integer terminal width
 ---@param codock_cmd string command to run
-local function handle_codock_filepos(copy_to_clipboard, width, codock_cmd, augroup)
-	local current_file, visual_pos = copy_visual_pos(copy_to_clipboard)
+local function handle_codock_filepos_paste(copy_to_clipboard, width, codock_cmd, augroup)
+	local file_position = copy_visual_pos(copy_to_clipboard)
 
 	-- Check if codock terminal exists
 	if utils.find_codock_terminal() then
-		-- Send to existing terminal: @file, enter, :pos
-		send_to_terminal(current_file .. ":" .. visual_pos .. " ")
+		-- Send to existing terminal
+		send_to_terminal(file_position .. " ")
 	else
 		-- Open codock terminal first, then send
 		open_codock_terminal(width, codock_cmd, augroup)
 		-- Wait a bit for terminal to be ready, then send
 		vim.defer_fn(function()
-			send_to_terminal(current_file .. ":" .. visual_pos .. " ")
+			send_to_terminal(file_position .. " ")
 		end, 3000)
 	end
 end
@@ -299,8 +305,14 @@ function M.setup(opts)
 	vim.api.nvim_create_user_command("CodockActions", function()
 		handle_codock_actions(opts, width, codock_cmd, augroup)
 	end, { range = true })
+	vim.api.nvim_create_user_command("CodockFilePosPaste", function()
+		handle_codock_filepos_paste(copy_to_clipboard, width, codock_cmd, augroup)
+	end, { range = true })
+	vim.api.nvim_create_user_command("CodockFilePosYank", function()
+		handle_codock_filepos_yank(copy_to_clipboard)
+	end, { range = true })
 	vim.api.nvim_create_user_command("CodockFilePos", function()
-		handle_codock_filepos(copy_to_clipboard, width, codock_cmd, augroup)
+		handle_codock_filepos_paste(copy_to_clipboard, width, codock_cmd, augroup)
 	end, { range = true })
 
 end

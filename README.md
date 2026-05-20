@@ -19,10 +19,11 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
     copy_to_clipboard = false, -- Copy to system clipboard
     actions = {},
   },
-  cmd = { "Codock", "CodockFilePos", "CodockActions" },
+  cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions" },
   keys = {
     { "<leader>CC", "<cmd>Codock<cr>", desc = "Toggle Codock", mode = { "n", "v" } },
-    { "<leader>CP", ":'<,'>CodockFilePos<cr>", desc = "Copy file path and line info", mode = { "n", "v" } },
+    { "<leader>CP", ":'<,'>CodockFilePosPaste<cr>", desc = "Copy and paste file path and line info", mode = { "n", "v" } },
+    { "<leader>CY", ":'<,'>CodockFilePosYank<cr>", desc = "Copy file path and line info", mode = { "n", "v" } },
     { "<leader>CA", ":'<,'>CodockActions<cr>", desc = "Run Codock actions", mode = { "n", "v" } },
   },
 }
@@ -43,9 +44,11 @@ You can also specify a different CLI tool as an argument:
 - `:Codock opencode` - Open opencode
 - `:Codock gemini-cli` - Open gemini-cli
 
-### 2.2 CodockFilePos Command
+### 2.2 CodockFilePosPaste and CodockFilePosYank Commands
 
-The `:CodockFilePos` command copies the relative file path and line/column information to the clipboard in various visual modes, then send it to the AI CLI tool.
+- `:CodockFilePosPaste` copies the relative file path and line/column information to the clipboard in various visual modes, then sends it to the AI CLI tool.
+- `:CodockFilePosYank` only copies the relative file path and line/column information.
+- `:CodockFilePos` remains as a backward-compatible alias for `:CodockFilePosPaste`.
 
 ### 2.3 CodockActions Command
 

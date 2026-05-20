@@ -19,10 +19,11 @@
     copy_to_clipboard = false, -- 复制到系统剪贴板
     actions = {},
   },
-  cmd = { "Codock", "CodockFilePos", "CodockActions" },
+  cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions" },
   keys = {
     { "<leader>CC", "<cmd>Codock<cr>", desc = "Toggle Codock", mode = { "n", "v" } },
-    { "<leader>CP", ":'<,'>CodockFilePos<cr>", desc = "Copy file path and line info", mode = { "n", "v" } },
+    { "<leader>CP", ":'<,'>CodockFilePosPaste<cr>", desc = "Copy and paste file path and line info", mode = { "n", "v" } },
+    { "<leader>CY", ":'<,'>CodockFilePosYank<cr>", desc = "Copy file path and line info", mode = { "n", "v" } },
     { "<leader>CA", ":'<,'>CodockActions<cr>", desc = "Run Codock actions", mode = { "n", "v" } },
   },
 }
@@ -43,9 +44,11 @@
 - `:Codock opencode` - 打开 opencode
 - `:Codock gemini-cli` - 打开 gemini-cli
 
-### 2.2 CodockFilePos 命令
+### 2.2 CodockFilePosPaste 和 CodockFilePosYank 命令
 
-`:CodockFilePos` 命令在 Visual 模式下将相对文件路径和行/列信息复制到剪贴板，然后发送给 AI CLI 工具。
+- `:CodockFilePosPaste` 命令在 Visual 模式下将相对文件路径和行/列信息复制到剪贴板，然后发送给 AI CLI 工具。
+- `:CodockFilePosYank` 命令仅复制相对文件路径和行/列信息。
+- `:CodockFilePos` 保留为 `:CodockFilePosPaste` 的向后兼容别名。
 
 ### 2.3 CodockActions 命令
 
