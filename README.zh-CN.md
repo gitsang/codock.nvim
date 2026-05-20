@@ -15,7 +15,6 @@
   'gitsang/codock.nvim',
   opts = {
     width = 80, -- 垂直分割窗口的宽度
-    fixed_width = true, -- 是否固定宽度（true = 锁定，false = 可调整）
     codock_cmd = "opencode", -- 终端中运行的命令（crush、opencode、claude、gemini-cli 等）
     copy_to_clipboard = false, -- 复制到系统剪贴板
     actions = {},
