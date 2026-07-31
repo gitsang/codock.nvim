@@ -12,7 +12,8 @@
 {
     name = "Action 名称",
     description = "可选的描述信息",
-    prompts = "字符串或函数"
+    prompts = "字符串或函数", -- prompts 和 execute 二选一
+    execute = function(context) end
 }
 ```
 
@@ -20,9 +21,12 @@
 
 - `name` (必需): action 的显示名称
 - `description` (可选): 附加说明信息
-- `prompts` (必需): 可以是字符串或函数
+- `prompts` (可选): 可以是字符串或函数
   - 字符串: 直接发送到 codock 终端的文本
   - 函数: 返回要发送的字符串，支持动态生成内容
+- `execute` (可选): 执行自定义操作，不会自动发送 prompt
+  - `context.send(text)`: 将文本发送到 codock 终端，必要时自动打开终端
+- 每个 Action 必须提供 `prompts` 或 `execute`。两者同时存在时优先执行 `execute`。
 
 ## 2. 示例 1: 简单字符串 Prompts
 
@@ -82,7 +86,26 @@ require("codock").setup({
 }
 ```
 
-## 4. 使用 Actions
+## 4. 示例 3: 使用用户输入的 Execute Action
+
+需要副作用或异步输入时可以使用 `execute`：
+
+```lua
+{
+    name = "Send with prefix",
+    execute = function(context)
+        vim.ui.input({ prompt = "Prefix: ", default = "" }, function(prefix)
+            if prefix ~= nil then
+                context.send(prefix .. "Please review this code.")
+            end
+        end)
+    end,
+}
+```
+
+`vim.ui.input()` 返回 `nil` 表示用户取消操作。
+
+## 5. 使用 Actions
 
 配置好 actions 后：
 
@@ -90,14 +113,14 @@ require("codock").setup({
 2. 选择需要的 action
 3. action 的 prompts 会自动发送到 codock 终端
 
-## 5. 默认 Actions
+## 6. 默认 Actions
 
-插件提供了默认的 actions（参见 `lua/codock/actions/default.lua`）。自定义的 actions 会与默认 actions 一起显示。
+插件提供了默认 Actions（参见 `lua/codock/actions/default.lua`），包括复制和发送文件位置的 Action。这两个文件位置 Action 都会通过 `vim.ui.input()` 请求可选前缀。自定义 Actions 会与默认 Actions 一起显示。
 
-## 6. 注意事项
+## 7. 注意事项
 
 1. `prompts` 函数应该返回一个字符串
-2. 函数会在 action 被选中时立即调用
+2. `prompts` 或 `execute` 函数会在 Action 被选中时立即调用
 3. 如果访问 visual mode 相关信息（如 `'<`, `'>`），确保从 visual mode 调用命令
 4. 保持 prompts 简洁有效，避免生成过长的文本
 5. 可以使用 `vim.notify()` 在函数中显示调试信息

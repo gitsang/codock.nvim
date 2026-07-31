@@ -24,8 +24,8 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
     { "<leader>CCO", "<cmd>Codock opencode<cr>", desc = "Toggle Codock Opencode", mode = { "n", "v" } },
     { "<leader>CCC", "<cmd>Codock claude<cr>", desc = "Toggle Codock Claude", mode = { "n", "v" } },
     { "<leader>CCX", "<cmd>Codock omx --madmax --xhigh<cr>", desc = "Toggle Codock Codex", mode = { "n", "v" } },
-    { "<leader>CY", ":'<,'>CodockFilePosYank<cr>", desc = "Copy file position", mode = { "n", "v" } },
-    { "<leader>CP", ":'<,'>CodockFilePosPaste<cr>", desc = "Copy and paste file position", mode = { "n", "v" } },
+    { "<leader>CY", ":'<,'>CodockFilePosYank @<cr>", desc = "Copy file position", mode = { "n", "v" } },
+    { "<leader>CP", ":'<,'>CodockFilePosPaste @<cr>", desc = "Copy and paste file position", mode = { "n", "v" } },
     { "<leader>CA", ":'<,'>CodockActions<cr>", desc = "Run Codock actions", mode = { "n", "v" } },
   },
 }
@@ -48,15 +48,16 @@ You can also specify a different CLI tool as an argument:
 
 ### 2.2 CodockFilePosPaste and CodockFilePosYank Commands
 
-- `:CodockFilePosPaste` copies the relative file path and line/column information to the clipboard in various visual modes, then sends it to the AI CLI tool.
-- `:CodockFilePosYank` only copies the relative file path and line/column information.
-- `:CodockFilePos` remains as a backward-compatible alias for `:CodockFilePosPaste`.
+- `:CodockFilePosPaste [prefix]` copies the relative file path and line/column information, then sends it to the AI CLI tool. For example, `:CodockFilePosPaste @` copies and sends `@path/to/file.lua:L1`.
+- `:CodockFilePosYank [prefix]` only copies the relative file path and line/column information. For example, `:CodockFilePosYank @` copies `@path/to/file.lua:L1`.
+- The optional prefix defaults to an empty string.
+- `:CodockFilePos [prefix]` remains as a backward-compatible alias for `:CodockFilePosPaste [prefix]`.
 
 ### 2.3 CodockActions Command
 
-The `:CodockActions` command allows you to define custom actions that can be executed from a popup selector.
+The `:CodockActions` command opens a popup selector containing the default and custom actions. The default actions include yanking and pasting file positions; these request an optional prefix through `vim.ui.input()`.
 
-You can find how to define your own actions in [Custom Actions Tutorial](docs/actions.md)
+You can find how to define prompt and executable actions in [Custom Actions Tutorial](docs/actions.md).
 
 ## 3. Supported AI CLI Tools
 

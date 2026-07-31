@@ -22,8 +22,8 @@
   cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions" },
   keys = {
     { "<leader>CC", "<cmd>Codock<cr>", desc = "Toggle Codock", mode = { "n", "v" } },
-    { "<leader>CP", ":'<,'>CodockFilePosPaste<cr>", desc = "Copy and paste file path and line info", mode = { "n", "v" } },
-    { "<leader>CY", ":'<,'>CodockFilePosYank<cr>", desc = "Copy file path and line info", mode = { "n", "v" } },
+    { "<leader>CP", ":'<,'>CodockFilePosPaste @<cr>", desc = "Copy and paste file path and line info", mode = { "n", "v" } },
+    { "<leader>CY", ":'<,'>CodockFilePosYank @<cr>", desc = "Copy file path and line info", mode = { "n", "v" } },
     { "<leader>CA", ":'<,'>CodockActions<cr>", desc = "Run Codock actions", mode = { "n", "v" } },
   },
 }
@@ -46,15 +46,16 @@
 
 ### 2.2 CodockFilePosPaste 和 CodockFilePosYank 命令
 
-- `:CodockFilePosPaste` 命令在 Visual 模式下将相对文件路径和行/列信息复制到剪贴板，然后发送给 AI CLI 工具。
-- `:CodockFilePosYank` 命令仅复制相对文件路径和行/列信息。
-- `:CodockFilePos` 保留为 `:CodockFilePosPaste` 的向后兼容别名。
+- `:CodockFilePosPaste [prefix]` 命令复制相对文件路径和行/列信息，然后发送给 AI CLI 工具。例如，`:CodockFilePosPaste @` 会复制并发送 `@path/to/file.lua:L1`。
+- `:CodockFilePosYank [prefix]` 命令仅复制相对文件路径和行/列信息。例如，`:CodockFilePosYank @` 会复制 `@path/to/file.lua:L1`。
+- 可选前缀默认为空字符串。
+- `:CodockFilePos [prefix]` 保留为 `:CodockFilePosPaste [prefix]` 的向后兼容别名。
 
 ### 2.3 CodockActions 命令
 
-`:CodockActions` 命令允许你定义可以从弹出选择器中执行的自定义操作。
+`:CodockActions` 命令会打开包含默认及自定义 Actions 的弹出选择器。默认 Actions 包括复制和发送文件位置，选择后会通过 `vim.ui.input()` 请求可选前缀。
 
-你可以在 [自定义 Actions 教程](docs/actions.zh-CN.md) 中找到如何定义自己的操作
+你可以在 [自定义 Actions 教程](docs/actions.zh-CN.md) 中了解如何定义 prompt 及 execute Action。
 
 ## 3. 支持的 AI CLI 工具
 

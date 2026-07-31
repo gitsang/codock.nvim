@@ -12,7 +12,8 @@ Each action contain the following fields:
 {
     name = "Action name",
     description = "Optional description",
-    prompts = "String or function"
+    prompts = "String or function", -- Use prompts or execute
+    execute = function(context) end
 }
 ```
 
@@ -20,9 +21,12 @@ Each action contain the following fields:
 
 - `name` (required): Display name of the action
 - `description` (optional): Additional description information
-- `prompts` (required): Can be a string or function
+- `prompts` (optional): Can be a string or function
   - String: Text directly sent to codock terminal
   - Function: Returns the string to send, supports dynamic content generation
+- `execute` (optional): Runs custom behavior instead of automatically sending a prompt
+  - `context.send(text)`: Sends text to the codock terminal, opening it when needed
+- Each action must define either `prompts` or `execute`. If both are present, `execute` takes precedence.
 
 ## 2. Example 1: Simple String Prompts
 
@@ -82,7 +86,26 @@ When you need to dynamically generate content, use a function as `prompts`. Here
 }
 ```
 
-## 4. Using Actions
+## 4. Example 3: Execute Action with User Input
+
+Use `execute` when an action needs side effects or asynchronous input:
+
+```lua
+{
+    name = "Send with prefix",
+    execute = function(context)
+        vim.ui.input({ prompt = "Prefix: ", default = "" }, function(prefix)
+            if prefix ~= nil then
+                context.send(prefix .. "Please review this code.")
+            end
+        end)
+    end,
+}
+```
+
+Returning `nil` from `vim.ui.input()` means the user cancelled the action.
+
+## 5. Using Actions
 
 After configuring actions:
 
@@ -90,14 +113,14 @@ After configuring actions:
 2. Select the desired action
 3. The action's prompts will be automatically sent to the codock terminal
 
-## 5. Default Actions
+## 6. Default Actions
 
-The plugin provides default actions (see `lua/codock/actions/default.lua`). Custom actions will be displayed together with default actions.
+The plugin provides default actions (see `lua/codock/actions/default.lua`), including actions for yanking and pasting file positions. Both file position actions request an optional prefix through `vim.ui.input()`. Custom actions are displayed together with the defaults.
 
-## 6. Notes
+## 7. Notes
 
-1. The `prompts` function should return a string
-2. The function is called immediately when the action is selected
+1. A `prompts` function should return a string
+2. The `prompts` or `execute` function is called immediately when the action is selected
 3. If accessing visual mode related information (like `'<`, `'>`), ensure the command is called from visual mode
 4. Keep prompts concise and effective, avoid generating overly long text
 5. You can use `vim.notify()` in the function to display debug information

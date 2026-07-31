@@ -17,52 +17,6 @@ local function scroll_terminal_to_bottom(win, buf)
 	pcall(vim.api.nvim_win_set_cursor, win, { line_count, 0 })
 end
 
----Get visual position string from current buffer and selection
----@return string position_string
-local function get_visual_pos()
-	local result = ""
-
-	-- Check if we have a range (from visual selection)
-	local visual_mode = vim.fn.visualmode()
-	local start_line = vim.fn.line("'<")
-	local end_line = vim.fn.line("'>")
-	local start_col = vim.fn.col("'<")
-	local end_col = vim.fn.col("'>")
-
-	if visual_mode == "V" then
-		-- VISUAL LINE mode
-		if start_line == end_line then
-			result = string.format("L%d", start_line)
-		else
-			result = string.format("L%d-L%d", start_line, end_line)
-		end
-	elseif visual_mode == "v" then
-		-- VISUAL mode (character-wise)
-		if start_line == end_line then
-			-- Single line in VISUAL mode
-			result = string.format("L%d:C%d-C%d", start_line, start_col, end_col)
-		else
-			-- Multiple lines in VISUAL mode
-			result = string.format("L%d-L%d:C%d-C%d", start_line, end_line, start_col, end_col)
-		end
-	elseif visual_mode == "\22" then
-		-- BLOCK mode
-		if start_line == end_line and start_col == end_col then
-			-- Single character in BLOCK mode
-			result = string.format("L%dC%d", start_line, start_col)
-		else
-			-- Multiple characters in BLOCK mode
-			result = string.format("L%dC%d-L%dC%d", start_line, start_col, end_line, end_col)
-		end
-	else
-		-- Not in visual mode, just copy current line
-		local current_line = vim.fn.line(".")
-		result = string.format("L%d", current_line)
-	end
-
-	return result
-end
-
 ---Send text to codock terminal
 ---@param text string text to send
 local function send_to_terminal(text)
@@ -85,46 +39,6 @@ local function send_to_terminal(text)
 		end
 	end
 	return false
-end
-
----Copy visual position to registers and optionally system clipboard
----@param copy_to_clipboard? boolean whether to copy to system clipboard
----@return string file_position formatted file position
-local function copy_visual_pos(copy_to_clipboard)
-	local current_file = utils.get_current_file()
-	local visual_pos = get_visual_pos()
-	local result = current_file .. ":" .. visual_pos
-
-	-- Always copy to unnamed register (works without system clipboard)
-	vim.fn.setreg('"', result)
-	vim.fn.setreg("0", result)
-
-	-- Copy to system clipboard only if enabled
-	local clipboard_success = false
-	if copy_to_clipboard then
-		local success = pcall(function()
-			vim.fn.setreg("+", result)
-		end)
-
-		if success then
-			-- Verify of content was actually copied
-			local clipboard_content = vim.fn.getreg("+")
-			if clipboard_content == result then
-				clipboard_success = true
-			end
-		end
-	end
-
-	-- Show appropriate notification
-	if copy_to_clipboard and clipboard_success then
-		vim.notify("Copied to clipboard: " .. result, vim.log.levels.INFO)
-	elseif copy_to_clipboard then
-		vim.notify("Copied to register (clipboard unavailable): " .. result, vim.log.levels.WARN)
-	else
-		vim.notify("Copied to register: " .. result .. " (paste with p)", vim.log.levels.INFO)
-	end
-
-	return result
 end
 
 ---Open codock terminal in vertical split
@@ -181,43 +95,36 @@ local function open_codock_terminal(width, codock_cmd, augroup)
 	vim.cmd("startinsert")
 end
 
+---Send text to an existing codock terminal or open one first.
+---@param text string text to send
+---@param width integer terminal width
+---@param codock_cmd string command to run
+local function send_to_codock(text, width, codock_cmd, augroup)
+	if utils.find_codock_terminal() then
+		send_to_terminal(text)
+		return
+	end
+
+	open_codock_terminal(width, codock_cmd, augroup)
+	vim.defer_fn(function()
+		send_to_terminal(text)
+	end, 3000)
+end
+
+---@class CodockActionContext
+---@field send fun(text: string)
+
 ---@class CodockAction
 ---@field name string
 ---@field description? string
----@field prompts string|fun():string
+---@field prompts? string|fun():string
+---@field execute? fun(context: CodockActionContext)
 
 ---@class CodockOptions
 ---@field width? integer
 ---@field codock_cmd? string
 ---@field copy_to_clipboard? boolean
 ---@field actions? CodockAction[]
-
----Handle CodockFilePosYank command
----@param copy_to_clipboard boolean whether to copy to clipboard
-local function handle_codock_filepos_yank(copy_to_clipboard)
-	copy_visual_pos(copy_to_clipboard)
-end
-
----Handle CodockFilePosPaste command
----@param copy_to_clipboard boolean whether to copy to clipboard
----@param width integer terminal width
----@param codock_cmd string command to run
-local function handle_codock_filepos_paste(copy_to_clipboard, width, codock_cmd, augroup)
-	local file_position = copy_visual_pos(copy_to_clipboard)
-
-	-- Check if codock terminal exists
-	if utils.find_codock_terminal() then
-		-- Send to existing terminal
-		send_to_terminal(file_position .. " ")
-	else
-		-- Open codock terminal first, then send
-		open_codock_terminal(width, codock_cmd, augroup)
-		-- Wait a bit for terminal to be ready, then send
-		vim.defer_fn(function()
-			send_to_terminal(file_position .. " ")
-		end, 3000)
-	end
-end
 
 ---Handle CodockActions command
 ---@param opts CodockOptions configuration options
@@ -254,23 +161,29 @@ local function handle_codock_actions(opts, width, codock_cmd, augroup)
 			return
 		end
 
-		-- Get the prompt
-		local prompt = ""
-		if type(selected.action.prompts) == "function" then
-			prompt = selected.action.prompts()
-		else
-			prompt = selected.action.prompts
+		local action = selected.action
+		if action.execute then
+			action.execute({
+				send = function(text)
+					send_to_codock(text, width, codock_cmd, augroup)
+				end,
+			})
+			return
 		end
 
-		-- Ensure terminal exists
-		if not utils.find_codock_terminal() then
-			open_codock_terminal(width, codock_cmd, augroup)
-			vim.defer_fn(function()
-				send_to_terminal(prompt)
-			end, 3000)
+		local prompt
+		if type(action.prompts) == "function" then
+			prompt = action.prompts()
 		else
-			send_to_terminal(prompt)
+			prompt = action.prompts
 		end
+
+		if type(prompt) ~= "string" then
+			vim.notify("Action must define prompts or execute", vim.log.levels.ERROR)
+			return
+		end
+
+		send_to_codock(prompt, width, codock_cmd, augroup)
 	end)
 end
 
@@ -282,6 +195,12 @@ function M.setup(opts)
 	local codock_cmd = opts.codock_cmd or "codock"
 	local copy_to_clipboard = opts.copy_to_clipboard ~= false -- default to true
 	local augroup = vim.api.nvim_create_augroup("codock_nvim", { clear = true })
+	local default_actions = require("codock.actions.default").create({
+		copy_to_clipboard = copy_to_clipboard,
+		send = function(text)
+			send_to_codock(text, width, codock_cmd, augroup)
+		end,
+	})
 
 	-- Initialize actions array if not provided
 	if not opts.actions then
@@ -289,9 +208,8 @@ function M.setup(opts)
 	end
 
 	-- Load default actions and insert them at the beginning
-	local default_actions = require("codock.actions.default").get_default_actions()
-	for i = #default_actions, 1, -1 do
-		table.insert(opts.actions, 1, default_actions[i])
+	for i = #default_actions.actions, 1, -1 do
+		table.insert(opts.actions, 1, default_actions.actions[i])
 	end
 
 	-- Create Codock command (supports optional argument: :Codock [cmd])
@@ -305,16 +223,7 @@ function M.setup(opts)
 	vim.api.nvim_create_user_command("CodockActions", function()
 		handle_codock_actions(opts, width, codock_cmd, augroup)
 	end, { range = true })
-	vim.api.nvim_create_user_command("CodockFilePosPaste", function()
-		handle_codock_filepos_paste(copy_to_clipboard, width, codock_cmd, augroup)
-	end, { range = true })
-	vim.api.nvim_create_user_command("CodockFilePosYank", function()
-		handle_codock_filepos_yank(copy_to_clipboard)
-	end, { range = true })
-	vim.api.nvim_create_user_command("CodockFilePos", function()
-		handle_codock_filepos_paste(copy_to_clipboard, width, codock_cmd, augroup)
-	end, { range = true })
-
+	default_actions.register_commands()
 end
 
 return M
