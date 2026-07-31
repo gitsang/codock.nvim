@@ -1,5 +1,7 @@
 local M = {}
 
+-- Visual selection
+
 ---@class CodockVisualPosition
 ---@field mode string
 ---@field start_line integer
@@ -49,6 +51,49 @@ function M.get_visual_range()
 	return position.start_line, position.end_line
 end
 
+---Get visual selection text
+---@return string
+function M.get_visual_selection_text()
+	local position = M.get_visual_position()
+	local bufnr = vim.api.nvim_get_current_buf()
+
+	if position.mode == "" then
+		return vim.api.nvim_get_current_line()
+	end
+
+	local start_line = position.start_line
+	local start_col = position.start_col
+	local end_line = position.end_line
+	local end_col = position.end_col
+	local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
+	if #lines == 0 then
+		return ""
+	end
+
+	if position.mode == "V" then
+		return table.concat(lines, "\n")
+	end
+
+	if position.mode == "\022" then
+		for i, line in ipairs(lines) do
+			lines[i] = string.sub(line, start_col, end_col)
+		end
+
+		return table.concat(lines, "\n")
+	end
+
+	if #lines == 1 then
+		return string.sub(lines[1], start_col, end_col)
+	end
+
+	lines[1] = string.sub(lines[1], start_col)
+	lines[#lines] = string.sub(lines[#lines], 1, end_col)
+
+	return table.concat(lines, "\n")
+end
+
+-- Terminal
+
 ---Find codock terminal buffer
 ---@return integer|nil bufnr
 function M.find_codock_terminal()
@@ -83,6 +128,8 @@ function M.get_terminal_cwd()
 	end
 	return nil
 end
+
+-- Paths
 
 ---Get a path relative to a base directory, including paths outside the base.
 ---@param base_path string
@@ -123,47 +170,6 @@ function M.get_current_file()
 	end
 
 	return vim.fn.fnamemodify(abs_path, ":.")
-end
-
----Get visual selection text
----@return string
-function M.get_visual_selection_text()
-	local position = M.get_visual_position()
-	local bufnr = vim.api.nvim_get_current_buf()
-
-	if position.mode == "" then
-		return vim.api.nvim_get_current_line()
-	end
-
-	local start_line = position.start_line
-	local start_col = position.start_col
-	local end_line = position.end_line
-	local end_col = position.end_col
-	local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
-	if #lines == 0 then
-		return ""
-	end
-
-	if position.mode == "V" then
-		return table.concat(lines, "\n")
-	end
-
-	if position.mode == "\022" then
-		for i, line in ipairs(lines) do
-			lines[i] = string.sub(line, start_col, end_col)
-		end
-
-		return table.concat(lines, "\n")
-	end
-
-	if #lines == 1 then
-		return string.sub(lines[1], start_col, end_col)
-	end
-
-	lines[1] = string.sub(lines[1], start_col)
-	lines[#lines] = string.sub(lines[#lines], 1, end_col)
-
-	return table.concat(lines, "\n")
 end
 
 return M
