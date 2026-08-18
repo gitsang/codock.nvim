@@ -56,11 +56,14 @@ local function open_codock_terminal(width, codock_cmd, augroup)
 	vim.api.nvim_set_option_value("winfixwidth", true, { win = win })
 	vim.w[win].codock_terminal = true
 
-	-- Open terminal and run codock command
-	vim.cmd("terminal " .. codock_cmd)
+	-- Open terminal and run codock command from the project root (or the
+	-- current working directory when git is not available)
+	local project_root = utils.find_project_root()
+	local buf = vim.api.nvim_create_buf(true, false)
+	vim.api.nvim_win_set_buf(win, buf)
+	vim.fn.jobstart(codock_cmd, { term = true, cwd = project_root })
 
 	-- Set buffer options to hide from buffer tab
-	local buf = vim.api.nvim_get_current_buf()
 	vim.api.nvim_set_option_value("buflisted", false, { buf = buf })
 	vim.b[buf].codock_terminal = true
 

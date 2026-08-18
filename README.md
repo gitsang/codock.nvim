@@ -37,7 +37,7 @@ After installation, you can run the following commands:
 
 ### 2.1 Codock Command
 
-Run the `:Codock` command to open a terminal in a vertical split running the configured AI CLI command.
+Run the `:Codock` command to open a terminal in a vertical split running the configured AI CLI command. The terminal starts in the git project root when available; otherwise it starts in the current working directory.
 
 You can also specify a different CLI tool as an argument:
 

@@ -131,6 +131,20 @@ end
 
 -- Paths
 
+---Find the project root via git, falling back to the current working directory.
+---@return string root
+function M.find_project_root()
+	local cwd = vim.fn.getcwd()
+	local ok, result = pcall(vim.fn.system, { "git", "-C", cwd, "rev-parse", "--show-toplevel" })
+	if ok and type(result) == "string" then
+		local root = result:gsub("[\r\n]+$", "")
+		if root ~= "" and vim.v.shell_error == 0 then
+			return root
+		end
+	end
+	return cwd
+end
+
 ---Get a path relative to a base directory, including paths outside the base.
 ---@param base_path string
 ---@param target_path string
