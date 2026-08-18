@@ -69,3 +69,24 @@ This plugin supports various AI CLI tools:
 - `gemini-cli` - Gemini CLI
 
 Simply set the `codock_cmd` option to your preferred AI CLI tool.
+
+## 4. FAQ
+
+### 4.1 Temporarily Disable Auto-Scroll to Bottom
+
+The codock terminal automatically scrolls to the bottom when it loses focus, so it keeps following the latest output (Neovim only tails terminal output while the terminal cursor is on the last line). If you want to browse the terminal output without it jumping to the bottom, disable this behavior temporarily:
+
+```vim
+:autocmd! codock_nvim WinLeave
+:autocmd! codock_nvim TermLeave
+```
+
+Or via Lua:
+
+```lua
+vim.api.nvim_clear_autocmds({ group = "codock_nvim", event = { "WinLeave", "TermLeave" } })
+```
+
+> The scroll-to-bottom behavior is registered on both the `WinLeave` and `TermLeave` events, so both must be removed. The other autocmd (`WinEnter` → `startinsert`) is unaffected.
+
+Restart Neovim to re-enable it — the `codock_nvim` augroup is recreated with `clear = true` in `setup()` on every start.

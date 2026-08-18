@@ -67,3 +67,24 @@
 - `gemini-cli` - Gemini CLI
 
 只需将 `codock_cmd` 选项设置为你首选的 AI CLI 工具即可。
+
+## 4. 常见问题
+
+### 4.1 临时关闭自动滚动到底部
+
+当 codock 终端窗口失去焦点时，插件会自动将其滚动到底部，以便持续跟随最新输出（Neovim 仅在终端光标位于最后一行时才会跟随输出）。如果你想浏览终端输出而不希望它自动跳到底部，可以临时禁用该行为：
+
+```vim
+:autocmd! codock_nvim WinLeave
+:autocmd! codock_nvim TermLeave
+```
+
+或使用 Lua：
+
+```lua
+vim.api.nvim_clear_autocmds({ group = "codock_nvim", event = { "WinLeave", "TermLeave" } })
+```
+
+> 滚动到底部的行为注册在 `WinLeave` 和 `TermLeave` 两个事件上，需要同时移除。另一条 `WinEnter` → `startinsert` 的 autocmd 不受影响。
+
+重启 Neovim 即可重新启用（`setup()` 每次启动都会以 `clear = true` 重建 `codock_nvim` augroup）。
