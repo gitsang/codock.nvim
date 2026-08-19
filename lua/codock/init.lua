@@ -66,6 +66,7 @@ local function open_codock_terminal(width, codock_cmd, augroup)
 	-- Set buffer options to hide from buffer tab
 	vim.api.nvim_set_option_value("buflisted", false, { buf = buf })
 	vim.b[buf].codock_terminal = true
+	utils.remember_codock_terminal(buf)
 
 	-- Set up terminal key mappings for window navigation
 	local term_opts = { buffer = buf, silent = true }
@@ -198,6 +199,17 @@ function M.setup(opts)
 	local codock_cmd = opts.codock_cmd or "codock"
 	local copy_to_clipboard = opts.copy_to_clipboard ~= false -- default to true
 	local augroup = vim.api.nvim_create_augroup("codock_nvim", { clear = true })
+
+	-- Track the most recently focused codock terminal so commands such as
+	-- CodockFilePosPaste and CodockActions send to the terminal the user
+	-- last used instead of the first terminal buffer.
+	vim.api.nvim_create_autocmd({ "BufEnter", "WinEnter" }, {
+		group = augroup,
+		callback = function()
+			utils.track_current_codock_terminal()
+		end,
+	})
+
 	local default_actions = require("codock.actions.default").create({
 		copy_to_clipboard = copy_to_clipboard,
 		send = function(text)

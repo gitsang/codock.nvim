@@ -59,6 +59,8 @@ You can also specify a different CLI tool as an argument:
 
 The `:CodockActions` command opens a popup selector containing the default and custom actions. The default actions include yanking and pasting file positions; these request an optional prefix through `vim.ui.input()`.
 
+When text needs to be sent to a terminal (for example, `CodockFilePosPaste` and Actions), it goes to the most recently focused codock terminal; if none exists, one is opened automatically.
+
 You can find how to define prompt and executable actions in [Custom Actions Tutorial](docs/actions.md).
 
 ## 3. Supported AI CLI Tools

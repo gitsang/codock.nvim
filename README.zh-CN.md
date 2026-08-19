@@ -59,6 +59,8 @@
 
 `:CodockActions` 命令会打开包含默认及自定义 Actions 的弹出选择器。默认 Actions 包括复制和发送文件位置，选择后会通过 `vim.ui.input()` 请求可选前缀。
 
+需要向终端发送文本时（例如 `CodockFilePosPaste` 和 Actions），会优先发送到最近聚焦的 codock 终端；如果不存在，则自动打开一个。
+
 你可以在 [自定义 Actions 教程](docs/actions.zh-CN.md) 中了解如何定义 prompt 及 execute Action。
 
 ## 3. 支持的 AI CLI 工具

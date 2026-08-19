@@ -94,18 +94,55 @@ end
 
 -- Terminal
 
----Find codock terminal buffer
+local last_codock_terminal_buf = nil
+
+---Check whether a buffer is a codock terminal.
+---@param buf integer
+---@return boolean
+function M.is_codock_terminal(buf)
+	if not vim.api.nvim_buf_is_valid(buf) then
+		return false
+	end
+
+	local buftype = vim.api.nvim_get_option_value("buftype", { buf = buf })
+	if buftype ~= "terminal" or not vim.b[buf].codock_terminal then
+		return false
+	end
+
+	return true
+end
+
+---Remember a codock terminal buffer as the most recently focused one.
+---@param buf integer
+function M.remember_codock_terminal(buf)
+	if M.is_codock_terminal(buf) then
+		last_codock_terminal_buf = buf
+	end
+end
+
+---Remember the current buffer if it is a codock terminal.
+function M.track_current_codock_terminal()
+	M.remember_codock_terminal(vim.api.nvim_get_current_buf())
+end
+
+---Find the most recently focused codock terminal buffer.
+---Falls back to the first codock terminal buffer when the tracked buffer is gone.
 ---@return integer|nil bufnr
 function M.find_codock_terminal()
+	if last_codock_terminal_buf and M.is_codock_terminal(last_codock_terminal_buf) then
+		return last_codock_terminal_buf
+	end
+
+	last_codock_terminal_buf = nil
+
 	local bufs = vim.api.nvim_list_bufs()
 	for _, buf in ipairs(bufs) do
-		if vim.api.nvim_buf_is_valid(buf) then
-			local buftype = vim.api.nvim_get_option_value("buftype", { buf = buf })
-			if buftype == "terminal" and vim.b[buf].codock_terminal then
-				return buf
-			end
+		if M.is_codock_terminal(buf) then
+			last_codock_terminal_buf = buf
+			return buf
 		end
 	end
+
 	return nil
 end
 
