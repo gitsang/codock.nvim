@@ -15,16 +15,20 @@
   'gitsang/codock.nvim',
   opts = {
     width = 80, -- 垂直分割窗口的宽度
-    codock_cmd = "opencode", -- 终端中运行的命令（crush、opencode、claude、gemini-cli 等）
+    codock_cmd = "pi", -- 终端中运行的命令（pi、opencode、claude、codex 等）
     copy_to_clipboard = false, -- 复制到系统剪贴板
     actions = {},
   },
   cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions" },
   keys = {
-    { "<leader>CC", "<cmd>Codock<cr>", desc = "Toggle Codock", mode = { "n", "v" } },
-    { "<leader>CP", ":'<,'>CodockFilePosPaste @<cr>", desc = "Copy and paste file path and line info", mode = { "n", "v" } },
-    { "<leader>CY", ":'<,'>CodockFilePosYank @<cr>", desc = "Copy file path and line info", mode = { "n", "v" } },
-    { "<leader>CA", ":'<,'>CodockActions<cr>", desc = "Run Codock actions", mode = { "n", "v" } },
+      { "<leader>CCO", "<cmd>Codock opencode<cr>", desc = "Open Opencode", mode = { "n", "v" } },
+      { "<leader>CCC", "<cmd>Codock claude<cr>", desc = "Open Claude", mode = { "n", "v" } },
+      { "<leader>CCX", "<cmd>Codock codex<cr>", desc = "Open Codex", mode = { "n", "v" } },
+      { "<leader>CCP", "<cmd>Codock pi<cr>", desc = "Open Pi Agent", mode = { "n", "v" } },
+      { "<leader>CCD", "<cmd>Codock dsh --profile tui<cr>", desc = "Open Deepseek Harness TUI", mode = { "n", "v" } },
+      { "<leader>CY", ":'<,'>CodockFilePosYank<cr>", desc = "Copy file position", mode = { "n", "v" } },
+      { "<leader>CP", ":'<,'>CodockFilePosPaste<cr>", desc = "Copy and paste file position", mode = { "n", "v" } },
+      { "<leader>CA", ":'<,'>CodockActions<cr>", desc = "Run Codock actions", mode = { "n", "v" } },
   },
 }
 ```

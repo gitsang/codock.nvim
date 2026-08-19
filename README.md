@@ -15,18 +15,20 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
   'gitsang/codock.nvim',
   opts = {
     width = 80, -- Width of the vertical split
-    codock_cmd = "opencode", -- Command to run in the terminal (crush, opencode, claude, gemini-cli, etc.)
+    codock_cmd = "pi", -- Command to run in the terminal (pi, opencode, claude, codex, etc.)
     copy_to_clipboard = false, -- Copy to system clipboard
     actions = {},
   },
   cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions" },
   keys = {
-    { "<leader>CCO", "<cmd>Codock opencode<cr>", desc = "Toggle Codock Opencode", mode = { "n", "v" } },
-    { "<leader>CCC", "<cmd>Codock claude<cr>", desc = "Toggle Codock Claude", mode = { "n", "v" } },
-    { "<leader>CCX", "<cmd>Codock omx --madmax --xhigh<cr>", desc = "Toggle Codock Codex", mode = { "n", "v" } },
-    { "<leader>CY", ":'<,'>CodockFilePosYank @<cr>", desc = "Copy file position", mode = { "n", "v" } },
-    { "<leader>CP", ":'<,'>CodockFilePosPaste @<cr>", desc = "Copy and paste file position", mode = { "n", "v" } },
-    { "<leader>CA", ":'<,'>CodockActions<cr>", desc = "Run Codock actions", mode = { "n", "v" } },
+      { "<leader>CCO", "<cmd>Codock opencode<cr>", desc = "Open Opencode", mode = { "n", "v" } },
+      { "<leader>CCC", "<cmd>Codock claude<cr>", desc = "Open Claude", mode = { "n", "v" } },
+      { "<leader>CCX", "<cmd>Codock codex<cr>", desc = "Open Codex", mode = { "n", "v" } },
+      { "<leader>CCP", "<cmd>Codock pi<cr>", desc = "Open Pi Agent", mode = { "n", "v" } },
+      { "<leader>CCD", "<cmd>Codock dsh --profile tui<cr>", desc = "Open Deepseek Harness TUI", mode = { "n", "v" } },
+      { "<leader>CY", ":'<,'>CodockFilePosYank<cr>", desc = "Copy file position", mode = { "n", "v" } },
+      { "<leader>CP", ":'<,'>CodockFilePosPaste<cr>", desc = "Copy and paste file position", mode = { "n", "v" } },
+      { "<leader>CA", ":'<,'>CodockActions<cr>", desc = "Run Codock actions", mode = { "n", "v" } },
   },
 }
 ```
