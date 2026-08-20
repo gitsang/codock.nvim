@@ -36,7 +36,7 @@ assert_true(source_win ~= nil, "Expected a source window next to the first termi
 
 -- Open the second codock terminal from the source window.
 vim.api.nvim_set_current_win(source_win)
-vim.cmd("Codock")
+vim.cmd("2Codock")
 local term2_win = vim.api.nvim_get_current_win()
 vim.cmd("stopinsert")
 
@@ -60,7 +60,7 @@ assert_true(
 -- New terminals should use the width set by CodockWidth.
 vim.api.nvim_win_close(term2_win, true)
 vim.api.nvim_set_current_win(source_win)
-vim.cmd("Codock")
+vim.cmd("3Codock")
 local term3_win = vim.api.nvim_get_current_win()
 assert_true(
 	vim.api.nvim_win_get_width(term3_win) == 30,

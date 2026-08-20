@@ -21,11 +21,11 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
   },
   cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth" },
   keys = {
-      { "<leader>CCO", "<cmd>Codock opencode<cr>", desc = "Open Opencode", mode = { "n", "v" } },
-      { "<leader>CCC", "<cmd>Codock claude<cr>", desc = "Open Claude", mode = { "n", "v" } },
-      { "<leader>CCX", "<cmd>Codock codex<cr>", desc = "Open Codex", mode = { "n", "v" } },
-      { "<leader>CCP", "<cmd>Codock pi<cr>", desc = "Open Pi Agent", mode = { "n", "v" } },
-      { "<leader>CCD", "<cmd>Codock dsh --profile tui<cr>", desc = "Open Deepseek Harness TUI", mode = { "n", "v" } },
+      { "<leader>CCO", "<cmd>Codock opencode<cr>", desc = "Toggle Opencode", mode = { "n", "v" } },
+      { "<leader>CCC", "<cmd>Codock claude<cr>", desc = "Toggle Claude", mode = { "n", "v" } },
+      { "<leader>CCX", "<cmd>Codock codex<cr>", desc = "Toggle Codex", mode = { "n", "v" } },
+      { "<leader>CCP", "<cmd>Codock pi<cr>", desc = "Toggle Pi Agent", mode = { "n", "v" } },
+      { "<leader>CCD", "<cmd>Codock dsh --profile tui<cr>", desc = "Toggle Deepseek Harness TUI", mode = { "n", "v" } },
       { "<leader>CY", ":'<,'>CodockFilePosYank<cr>", desc = "Copy file position", mode = { "n", "v" } },
       { "<leader>CP", ":'<,'>CodockFilePosPaste<cr>", desc = "Copy and paste file position", mode = { "n", "v" } },
       { "<leader>CA", ":'<,'>CodockActions<cr>", desc = "Run Codock actions", mode = { "n", "v" } },
@@ -39,14 +39,24 @@ After installation, you can run the following commands:
 
 ### 2.1 Codock Command
 
-Run the `:Codock` command to open a terminal in a vertical split running the configured AI CLI command. The terminal starts in the git project root when available; otherwise it starts in the current working directory.
+The `:Codock` command toggles a codock terminal window in a vertical split. Each terminal is bound to a numbered slot:
 
-You can also specify a different CLI tool as an argument:
+- `:Codock` - Toggle slot 1
+- `:2:Codock` or `:2Codock` - Toggle slot 2
+- `:3:Codock claude` - Toggle slot 3 (runs `claude` when slot 3 is created)
 
-- `:Codock` - Open the default CLI tool configured in `codock_cmd`
-- `:Codock claude` - Open claude
-- `:Codock opencode` - Open opencode
-- `:Codock gemini-cli` - Open gemini-cli
+If the slot has no terminal yet, `:Codock` creates one running the configured AI CLI command. The terminal starts in the git project root when available; otherwise it starts in the current working directory. If the slot already has a visible terminal, `:Codock` hides its window. If the slot has a hidden terminal, `:Codock` shows it again in a new split, keeping the same buffer and process.
+
+Counts also work before mappings, so `2<leader>CCP` toggles slot 2 with the `<leader>CCP` mapping shown above.
+
+You can also specify a different CLI tool as an argument when creating a slot:
+
+- `:Codock` - Toggle slot 1 with the default CLI tool configured in `codock_cmd`
+- `:Codock claude` - Toggle slot 1 (runs `claude` when slot 1 is created)
+- `:2Codock opencode` - Toggle slot 2 (runs `opencode` when slot 2 is created)
+- `:2Codock gemini-cli` - Toggle slot 2 (runs `gemini-cli` when slot 2 is created)
+
+> To run a different CLI tool next to an existing terminal, use another slot, e.g. `:2Codock claude`.
 
 ### 2.2 CodockFilePosPaste and CodockFilePosYank Commands
 
@@ -59,7 +69,7 @@ You can also specify a different CLI tool as an argument:
 
 The `:CodockActions` command opens a popup selector containing the default and custom actions. The default actions include yanking and pasting file positions; these request an optional prefix through `vim.ui.input()`.
 
-When text needs to be sent to a terminal (for example, `CodockFilePosPaste` and Actions), it goes to the most recently focused codock terminal; if none exists, one is opened automatically.
+When text needs to be sent to a terminal (for example, `CodockFilePosPaste` and Actions), it goes to the most recently focused codock terminal; if that terminal is hidden, its window is shown again first. If no codock terminal exists, one is opened automatically.
 
 You can find how to define prompt and executable actions in [Custom Actions Tutorial](docs/actions.md).
 

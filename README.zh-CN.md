@@ -21,11 +21,11 @@
   },
   cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth" },
   keys = {
-      { "<leader>CCO", "<cmd>Codock opencode<cr>", desc = "Open Opencode", mode = { "n", "v" } },
-      { "<leader>CCC", "<cmd>Codock claude<cr>", desc = "Open Claude", mode = { "n", "v" } },
-      { "<leader>CCX", "<cmd>Codock codex<cr>", desc = "Open Codex", mode = { "n", "v" } },
-      { "<leader>CCP", "<cmd>Codock pi<cr>", desc = "Open Pi Agent", mode = { "n", "v" } },
-      { "<leader>CCD", "<cmd>Codock dsh --profile tui<cr>", desc = "Open Deepseek Harness TUI", mode = { "n", "v" } },
+      { "<leader>CCO", "<cmd>Codock opencode<cr>", desc = "Toggle Opencode", mode = { "n", "v" } },
+      { "<leader>CCC", "<cmd>Codock claude<cr>", desc = "Toggle Claude", mode = { "n", "v" } },
+      { "<leader>CCX", "<cmd>Codock codex<cr>", desc = "Toggle Codex", mode = { "n", "v" } },
+      { "<leader>CCP", "<cmd>Codock pi<cr>", desc = "Toggle Pi Agent", mode = { "n", "v" } },
+      { "<leader>CCD", "<cmd>Codock dsh --profile tui<cr>", desc = "Toggle Deepseek Harness TUI", mode = { "n", "v" } },
       { "<leader>CY", ":'<,'>CodockFilePosYank<cr>", desc = "Copy file position", mode = { "n", "v" } },
       { "<leader>CP", ":'<,'>CodockFilePosPaste<cr>", desc = "Copy and paste file position", mode = { "n", "v" } },
       { "<leader>CA", ":'<,'>CodockActions<cr>", desc = "Run Codock actions", mode = { "n", "v" } },
@@ -39,14 +39,24 @@
 
 ### 2.1 Codock 命令
 
-运行 `:Codock` 命令在垂直分割窗口中打开运行配置的 AI CLI 命令的终端。终端会在 git 项目根目录中启动；如果没有 git 仓库，则在当前工作目录中启动。
+`:Codock` 命令会在垂直分割窗口中开启或隐藏 codock 终端。每个终端绑定一个数字槽位：
 
-你也可以指定不同的 CLI 工具作为参数：
+- `:Codock` - Toggle 槽位 1
+- `:2:Codock` 或 `:2Codock` - Toggle 槽位 2
+- `:3:Codock claude` - Toggle 槽位 3（槽位 3 不存在时使用 `claude` 创建）
 
-- `:Codock` - 打开 `codock_cmd` 配置的默认 CLI 工具
-- `:Codock claude` - 打开 claude
-- `:Codock opencode` - 打开 opencode
-- `:Codock gemini-cli` - 打开 gemini-cli
+如果槽位还没有终端，`:Codock` 会创建运行配置的 AI CLI 命令的终端。终端会在 git 项目根目录中启动；如果没有 git 仓库，则在当前工作目录中启动。如果槽位已有可见终端，`:Codock` 会隐藏它的窗口。如果槽位已有隐藏终端，`:Codock` 会在新分割窗口中重新显示它，并复用同一个 buffer 和进程。
+
+count 在 mapping 前同样生效，因此 `2<leader>CCP` 会 toggle 上面配置中 `<leader>CCP` 对应的槽位 2。
+
+你也可以在创建槽位时指定不同的 CLI 工具作为参数：
+
+- `:Codock` - Toggle 槽位 1，使用 `codock_cmd` 配置的默认 CLI 工具
+- `:Codock claude` - Toggle 槽位 1（槽位 1 不存在时使用 claude 创建）
+- `:2Codock opencode` - Toggle 槽位 2（槽位 2 不存在时使用 opencode 创建）
+- `:2Codock gemini-cli` - Toggle 槽位 2（槽位 2 不存在时使用 gemini-cli 创建）
+
+> 如果需要在已有终端旁边运行另一个 CLI 工具，请使用其他槽位，例如 `:2Codock claude`。
 
 ### 2.2 CodockFilePosPaste 和 CodockFilePosYank 命令
 
@@ -59,7 +69,7 @@
 
 `:CodockActions` 命令会打开包含默认及自定义 Actions 的弹出选择器。默认 Actions 包括复制和发送文件位置，选择后会通过 `vim.ui.input()` 请求可选前缀。
 
-需要向终端发送文本时（例如 `CodockFilePosPaste` 和 Actions），会优先发送到最近聚焦的 codock 终端；如果不存在，则自动打开一个。
+需要向终端发送文本时（例如 `CodockFilePosPaste` 和 Actions），会优先发送到最近聚焦的 codock 终端；如果该终端窗口已隐藏，会先重新显示它。如果不存在 codock 终端，则自动打开一个。
 
 你可以在 [自定义 Actions 教程](docs/actions.zh-CN.md) 中了解如何定义 prompt 及 execute Action。
 
