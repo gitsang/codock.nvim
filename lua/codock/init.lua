@@ -41,6 +41,27 @@ local function send_to_terminal(text)
 	return false
 end
 
+---Resize all codock terminal windows.
+---@param width integer terminal width
+---@return integer resized_count number of codock terminal windows resized
+local function resize_codock_windows(width)
+	local resized_count = 0
+
+	for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
+		for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
+			if vim.api.nvim_win_is_valid(win) then
+				local buf = vim.api.nvim_win_get_buf(win)
+				if utils.is_codock_terminal(buf) then
+					vim.api.nvim_win_set_width(win, width)
+					resized_count = resized_count + 1
+				end
+			end
+		end
+	end
+
+	return resized_count
+end
+
 ---Open codock terminal in vertical split
 ---@param width integer terminal width
 ---@param codock_cmd string command to run
@@ -238,6 +259,30 @@ function M.setup(opts)
 	vim.api.nvim_create_user_command("CodockActions", function()
 		handle_codock_actions(opts, width, codock_cmd, augroup)
 	end, { range = true })
+
+	-- Create CodockWidth command to resize all codock terminal windows at once.
+	-- The new width is also used for terminals opened afterwards.
+	vim.api.nvim_create_user_command("CodockWidth", function(cmd_opts)
+		local new_width = width
+		if cmd_opts.args ~= "" then
+			local parsed = tonumber(cmd_opts.args)
+			if not parsed or parsed < 1 then
+				vim.notify("CodockWidth requires a positive integer width", vim.log.levels.ERROR)
+				return
+			end
+			new_width = math.floor(parsed)
+		end
+
+		width = new_width
+		local resized_count = resize_codock_windows(width)
+		if resized_count == 0 then
+			vim.notify(
+				string.format("No codock terminal windows found; new windows will use width %d", width),
+				vim.log.levels.INFO
+			)
+		end
+	end, { nargs = "?" })
+
 	default_actions.register_commands()
 end
 

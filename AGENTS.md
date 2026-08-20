@@ -41,5 +41,5 @@ This is a Neovim plugin written in Lua that opens a terminal with AI CLI tools (
 
 - Plugin code is in lua/codock/init.lua
 - Main functionality is in the setup() function
-- Creates Codock user commands (Codock, CodockFilePos, CodockActions)
+- Creates Codock user commands (Codock, CodockFilePos, CodockActions, CodockWidth)
 - Supports multiple AI CLI tools via codock_cmd option

@@ -19,7 +19,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
     copy_to_clipboard = false, -- Copy to system clipboard
     actions = {},
   },
-  cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions" },
+  cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth" },
   keys = {
       { "<leader>CCO", "<cmd>Codock opencode<cr>", desc = "Open Opencode", mode = { "n", "v" } },
       { "<leader>CCC", "<cmd>Codock claude<cr>", desc = "Open Claude", mode = { "n", "v" } },
@@ -62,6 +62,13 @@ The `:CodockActions` command opens a popup selector containing the default and c
 When text needs to be sent to a terminal (for example, `CodockFilePosPaste` and Actions), it goes to the most recently focused codock terminal; if none exists, one is opened automatically.
 
 You can find how to define prompt and executable actions in [Custom Actions Tutorial](docs/actions.md).
+
+### 2.4 CodockWidth Command
+
+`:CodockWidth [width]` resizes every open codock terminal window to `width`. The new width is also used for terminals opened afterwards.
+
+- `:CodockWidth 30` - resize all codock terminal windows to 30 columns
+- `:CodockWidth` - reset all codock terminal windows to the current width
 
 ## 3. Supported AI CLI Tools
 

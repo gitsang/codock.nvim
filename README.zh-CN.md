@@ -19,7 +19,7 @@
     copy_to_clipboard = false, -- 复制到系统剪贴板
     actions = {},
   },
-  cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions" },
+  cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth" },
   keys = {
       { "<leader>CCO", "<cmd>Codock opencode<cr>", desc = "Open Opencode", mode = { "n", "v" } },
       { "<leader>CCC", "<cmd>Codock claude<cr>", desc = "Open Claude", mode = { "n", "v" } },
@@ -62,6 +62,13 @@
 需要向终端发送文本时（例如 `CodockFilePosPaste` 和 Actions），会优先发送到最近聚焦的 codock 终端；如果不存在，则自动打开一个。
 
 你可以在 [自定义 Actions 教程](docs/actions.zh-CN.md) 中了解如何定义 prompt 及 execute Action。
+
+### 2.4 CodockWidth 命令
+
+`:CodockWidth [width]` 将所有已打开的 codock 终端窗口宽度统一调整为 `width`，之后新打开的终端也会使用该宽度。
+
+- `:CodockWidth 30` - 将所有 codock 终端窗口宽度调整为 30 列
+- `:CodockWidth` - 将所有 codock 终端窗口重置为当前使用的宽度
 
 ## 3. 支持的 AI CLI 工具
 
