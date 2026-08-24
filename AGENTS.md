@@ -40,7 +40,7 @@ This is a Neovim plugin written in Lua that opens a terminal with AI CLI tools (
 ## Plugin Structure
 
 - `lua/codock/init.lua` - setup orchestration and default action wiring
-- `lua/codock/terminal.lua` - terminal slot registry and window/buffer lifecycle
+- `lua/codock/terminal.lua` - terminal slot registry, window/buffer lifecycle, and slot header (winbar)
 - `lua/codock/commands.lua` - user command registration (`Codock`, `CodockActions`, `CodockWidth`)
 - `lua/codock/actions/select.lua` - action popup selection and execution
 - `lua/codock/actions/default.lua` - built-in action composition and command registration

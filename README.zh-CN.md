@@ -17,6 +17,7 @@
     width = 80, -- 垂直分割窗口的宽度
     codock_cmd = "pi", -- 终端中运行的命令（pi、opencode、claude、codex 等）
     copy_to_clipboard = false, -- 复制到系统剪贴板
+    header = true, -- 在每个终端窗口上方显示一行带槽位号的头部
     actions = {},
   },
   cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth" },
@@ -57,6 +58,8 @@ count 在 mapping 前同样生效，因此 `2<leader>CCP` 会 toggle 上面配�
 - `:2Codock gemini-cli` - Toggle 槽位 2（槽位 2 不存在时使用 gemini-cli 创建）
 
 > 如果需要在已有终端旁边运行另一个 CLI 工具，请使用其他槽位，例如 `:2Codock claude`。
+
+每个可见终端会显示一行带有槽位号的头部，基于 `winbar` 选项绘制（需要 Neovim 0.11+；旧版本不显示头部）。头部使用 `CodockHeader` 高亮组（默认链接到 `StatusLine`），可通过 `header = false` 关闭。
 
 ### 2.2 CodockFilePosPaste 和 CodockFilePosYank 命令
 

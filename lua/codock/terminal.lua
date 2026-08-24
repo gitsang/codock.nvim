@@ -3,6 +3,11 @@ local utils = require("codock.utils")
 
 -- slot -> terminal buffer
 local slots = {}
+-- terminal buffer -> slot
+local slot_of = {}
+
+-- Whether the slot header above terminal windows is enabled.
+local show_header = true
 
 ---Normalize a terminal slot number to a positive integer.
 ---@param slot integer
@@ -54,6 +59,9 @@ function M.get_slot(slot)
 		return buf
 	end
 	slots[slot] = nil
+	if buf then
+		slot_of[buf] = nil
+	end
 	return nil
 end
 
@@ -61,7 +69,44 @@ end
 ---@param slot integer
 ---@param buf integer
 function M.set_slot(slot, buf)
-	slots[normalize_slot(slot)] = buf
+	local normalized = normalize_slot(slot)
+	slots[normalized] = buf
+	slot_of[buf] = normalized
+end
+
+---Return the slot registered for a terminal buffer, if any.
+---@param buf integer terminal buffer
+---@return integer|nil slot
+function M.slot_for(buf)
+	return slot_of[buf]
+end
+
+---Enable or disable the slot header shown above terminal windows.
+---@param enabled boolean
+function M.enable_header(enabled)
+	show_header = enabled
+end
+
+---Apply the slot header to a window.
+---
+---The header is a one-line winbar showing the slot number of the window's
+---terminal buffer. It requires Neovim 0.11+ (`winbar`); on older versions
+---this is a no-op. Setting an empty value only clears the window-local
+---option, so a user-configured global winbar keeps working.
+---@param win integer window
+function M.apply_header(win)
+	if vim.fn.has("nvim-0.11") ~= 1 or not vim.api.nvim_win_is_valid(win) then
+		return
+	end
+
+	local buf = vim.api.nvim_win_get_buf(win)
+	local slot = slot_of[buf]
+	if not slot or not utils.is_codock_terminal(buf) then
+		return
+	end
+
+	local header = "%#CodockHeader#  slot " .. tostring(slot)
+	vim.wo[win].winbar = show_header and header or ""
 end
 
 ---Create a vertical split and prepare it to display a codock terminal.
@@ -101,6 +146,7 @@ function M.create(width, codock_cmd, augroup, slot)
 	vim.b[buf].codock_terminal = true
 	utils.remember_codock_terminal(buf)
 	M.set_slot(slot, buf)
+	M.apply_header(win)
 
 	-- Set up terminal key mappings for window navigation
 	local term_opts = { buffer = buf, silent = true }
@@ -116,6 +162,7 @@ function M.create(width, codock_cmd, augroup, slot)
 		group = augroup,
 		buffer = buf,
 		callback = function()
+			M.apply_header(vim.api.nvim_get_current_win())
 			if vim.api.nvim_get_current_buf() == buf then
 				vim.cmd("startinsert")
 			end
@@ -147,6 +194,7 @@ function M.show(buf, width)
 	local win = open_split(width)
 	vim.api.nvim_win_set_buf(win, buf)
 	utils.remember_codock_terminal(buf)
+	M.apply_header(win)
 	vim.cmd("startinsert")
 	return win
 end

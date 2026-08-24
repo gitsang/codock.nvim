@@ -17,6 +17,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
     width = 80, -- Width of the vertical split
     codock_cmd = "pi", -- Command to run in the terminal (pi, opencode, claude, codex, etc.)
     copy_to_clipboard = false, -- Copy to system clipboard
+    header = true, -- Show a one-line header with the slot number above each terminal
     actions = {},
   },
   cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth" },
@@ -57,6 +58,8 @@ You can also specify a different CLI tool as an argument when creating a slot:
 - `:2Codock gemini-cli` - Toggle slot 2 (runs `gemini-cli` when slot 2 is created)
 
 > To run a different CLI tool next to an existing terminal, use another slot, e.g. `:2Codock claude`.
+
+Each visible terminal shows a one-line header with its slot number, drawn with the `winbar` option (Neovim 0.11+; on older Neovim the header is simply not shown). The header uses the `CodockHeader` highlight group, which links to `StatusLine` by default, and can be turned off with `header = false`.
 
 ### 2.2 CodockFilePosPaste and CodockFilePosYank Commands
 
