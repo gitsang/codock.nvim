@@ -105,7 +105,7 @@ function M.apply_header(win)
 		return
 	end
 
-	local header = "%#CodockHeader# \u{f1cc} " .. slot
+	local header = "%#CodockHeader#\u{f1cc}  " .. slot
 	vim.wo[win].winbar = show_header and header or ""
 end
 
