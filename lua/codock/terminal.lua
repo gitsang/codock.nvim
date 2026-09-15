@@ -9,6 +9,15 @@ local slot_of = {}
 -- Whether the slot header above terminal windows is enabled.
 local show_header = true
 
+-- Whether clicking a file path in a terminal opens it in an editor window.
+local open_path_on_click = true
+
+---Enable or disable opening file paths by clicking them in a terminal.
+---@param enabled boolean
+function M.enable_open_path_on_click(enabled)
+	open_path_on_click = enabled
+end
+
 ---Normalize a terminal slot number to a positive integer.
 ---@param slot integer
 ---@return integer
@@ -109,6 +118,36 @@ function M.apply_header(win)
 	vim.wo[win].winbar = show_header and header or ""
 end
 
+---Open the file path under the mouse, falling back to the native click.
+---
+---`<LeftMouse>` is bound on the terminal buffer instead of `g<LeftMouse>` so a
+---plain click works even while the CLI has enabled mouse reporting, which
+---would otherwise forward the event to the program. Clicks that are not on a
+---file path are replayed with `feedkeys(..., 'n')` so the terminal keeps its
+---native behavior (moving the cursor, starting a selection, or forwarding the
+---event to the CLI).
+---@param buf integer terminal buffer
+local function map_open_path_on_click(buf)
+	local open_path = require("codock.open_path")
+
+	local function on_left_mouse()
+		if open_path_on_click and open_path.open_at_mouse() then
+			return
+		end
+
+		-- Replay the original event without mappings to restore the default
+		-- behavior for clicks that did not open a file.
+		local keys = vim.api.nvim_replace_termcodes("<LeftMouse>", true, false, true)
+		vim.api.nvim_feedkeys(keys, "n", false)
+	end
+
+	vim.keymap.set({ "n", "t" }, "<LeftMouse>", on_left_mouse, {
+		buffer = buf,
+		silent = true,
+		desc = "Open file path under cursor",
+	})
+end
+
 ---Create a vertical split and prepare it to display a codock terminal.
 ---@param width integer terminal width
 ---@return integer win
@@ -154,6 +193,7 @@ function M.create(width, codock_cmd, augroup, slot)
 	vim.keymap.set("t", "<C-j>", "<C-\\><C-n><C-w>j", term_opts)
 	vim.keymap.set("t", "<C-k>", "<C-\\><C-n><C-w>k", term_opts)
 	vim.keymap.set("t", "<C-l>", "<C-\\><C-n><C-w>l", term_opts)
+	map_open_path_on_click(buf)
 
 	-- Set up autocmd to enter terminal mode when entering the codock terminal
 	-- buffer. This intentionally checks the buffer instead of the creating

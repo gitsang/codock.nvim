@@ -18,6 +18,7 @@
     codock_cmd = "pi", -- 终端中运行的命令（pi、opencode、claude、codex 等）
     copy_to_clipboard = false, -- 复制到系统剪贴板
     header = true, -- 在每个终端窗口上方显示一行带槽位号的头部
+    open_path_on_click = true, -- 点击终端中的文件路径时在编辑器窗口中打开
     actions = {},
   },
   cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth" },
@@ -83,6 +84,26 @@ count 在 mapping 前同样生效，因此 `2<leader>CCP` 会 toggle 上面配�
 - `:CodockWidth 30` - 将所有 codock 终端窗口宽度调整为 30 列
 - `:CodockWidth` - 将所有 codock 终端窗口重置为当前使用的宽度
 
+### 2.5 点击打开文件路径
+
+在 codock 终端中点击文件路径，会在终端左侧的编辑器窗口中打开该文件，且不会离开终端模式，因此 CLI 会话可以继续运行：
+
+- `src/main.lua` - 打开该文件
+- `src/main.lua:42` - 打开该文件并跳转到第 42 行
+- `src/main.lua:42:7` - 打开该文件并跳转到第 42 行第 7 列
+
+相对路径会优先相对于终端工作目录解析，其次相对于 Neovim 的工作目录解析，因此即使 CLI 切换过目录，它输出的路径也能正确解析。绝对路径和 `~/` 路径同样可用，`@` 前缀（`:CodockFilePosYank` 会生成）会被忽略。
+
+只有当光标下的文本能解析为已存在的文件时才会处理点击；其他点击保持原有行为，包括文本选择和把点击事件透传给 CLI。路径会匹配行内任意位置，因此 `see src/main.lua.` 和 `error at src/main.lua:42:7:` 都能正确识别。
+
+关闭该功能：
+
+```lua
+opts = {
+  open_path_on_click = false,
+}
+```
+
 ## 3. 支持的 AI CLI 工具
 
 本插件支持多种 AI CLI 工具：
@@ -114,3 +135,20 @@ vim.api.nvim_clear_autocmds({ group = "codock_nvim", event = { "WinLeave", "Term
 > 滚动到底部的行为注册在 `WinLeave` 和 `TermLeave` 两个事件上，需要同时移除。另一条 `WinEnter` → `startinsert` 的 autocmd 不受影响。
 
 重启 Neovim 即可重新启用（`setup()` 每次启动都会以 `clear = true` 重建 `codock_nvim` augroup）。
+
+### 4.2 临时关闭点击路径打开文件
+
+用于打开文件路径的 `<LeftMouse>` 映射设置在每一个 codock 终端 buffer 上。如果只想临时移除当前终端的映射：
+
+```vim
+:silent! tunmap <buffer> <LeftMouse>
+:silent! nunmap <buffer> <LeftMouse>
+```
+
+或使用 Lua：
+
+```lua
+pcall(vim.keymap.del, { "n", "t" }, "<LeftMouse>", { buffer = 0 })
+```
+
+重启 Neovim 或新开一个 codock 终端即可恢复该映射；若要永久关闭，请设置 `open_path_on_click = false`。

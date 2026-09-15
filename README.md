@@ -18,6 +18,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
     codock_cmd = "pi", -- Command to run in the terminal (pi, opencode, claude, codex, etc.)
     copy_to_clipboard = false, -- Copy to system clipboard
     header = true, -- Show a one-line header with the slot number above each terminal
+    open_path_on_click = true, -- Open file paths clicked in the terminal in the editor window
     actions = {},
   },
   cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth" },
@@ -83,6 +84,26 @@ You can find how to define prompt and executable actions in [Custom Actions Tuto
 - `:CodockWidth 30` - resize all codock terminal windows to 30 columns
 - `:CodockWidth` - reset all codock terminal windows to the current width
 
+### 2.5 Opening File Paths by Clicking
+
+Clicking a file path in a codock terminal opens it in the editor window to the left of the terminal, without leaving terminal mode, so the CLI session keeps running:
+
+- `src/main.lua` - open the file
+- `src/main.lua:42` - open the file and jump to line 42
+- `src/main.lua:42:7` - open the file and jump to line 42, column 7
+
+Relative paths are resolved against the terminal working directory first and the Neovim working directory second, so paths printed by the CLI resolve correctly even after it changed directory. Absolute paths and `~/` paths work as well, and a leading `@` (as produced by `:CodockFilePosYank`) is ignored.
+
+Clicks are only handled when the text under the cursor resolves to an existing file; any other click keeps its normal behavior, including text selection and passing the click through to the CLI. Paths are matched anywhere in the line, so both `see src/main.lua.` and `error at src/main.lua:42:7:` work.
+
+Disable the feature with:
+
+```lua
+opts = {
+  open_path_on_click = false,
+}
+```
+
 ## 3. Supported AI CLI Tools
 
 This plugin supports various AI CLI tools:
@@ -114,3 +135,20 @@ vim.api.nvim_clear_autocmds({ group = "codock_nvim", event = { "WinLeave", "Term
 > The scroll-to-bottom behavior is registered on both the `WinLeave` and `TermLeave` events, so both must be removed. The other autocmd (`WinEnter` → `startinsert`) is unaffected.
 
 Restart Neovim to re-enable it — the `codock_nvim` augroup is recreated with `clear = true` in `setup()` on every start.
+
+### 4.2 Temporarily Disable Clicking Paths to Open Files
+
+The `<LeftMouse>` mapping that opens file paths is set on each codock terminal buffer. To remove it from the current terminal for a while:
+
+```vim
+:silent! tunmap <buffer> <LeftMouse>
+:silent! nunmap <buffer> <LeftMouse>
+```
+
+Or via Lua:
+
+```lua
+pcall(vim.keymap.del, { "n", "t" }, "<LeftMouse>", { buffer = 0 })
+```
+
+Restart Neovim or open a new codock terminal to get the mapping back, or disable the feature for good with `open_path_on_click = false`.

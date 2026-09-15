@@ -8,6 +8,7 @@ local commands = require("codock.commands")
 ---@field codock_cmd? string
 ---@field copy_to_clipboard? boolean
 ---@field header? boolean
+---@field open_path_on_click? boolean
 ---@field actions? CodockAction[]
 
 ---Setup function for codock.nvim
@@ -26,6 +27,7 @@ function M.setup(opts)
 	-- any definition the user already made.
 	vim.api.nvim_set_hl(0, "CodockHeader", { link = "StatusLine", default = true })
 	terminal.enable_header(opts.header ~= false)
+	terminal.enable_open_path_on_click(opts.open_path_on_click ~= false)
 
 	-- Track the most recently focused codock terminal so commands such as
 	-- CodockFilePosPaste and CodockActions send to the terminal the user
