@@ -63,6 +63,16 @@ assert_true(
 
 -- Path resolution ------------------------------------------------------------
 
+---Resolver bound to a specific base directory, as `open_path` does for the
+---terminal it was clicked in.
+---@param base_cwd string
+---@return fun(path: string): string|nil
+local function resolve_from(base_cwd)
+	return function(path)
+		return utils.resolve_file_path(path, base_cwd)
+	end
+end
+
 assert_equal(
 	utils.resolve_file_path("src/nested/target.lua", tmp_dir),
 	vim.fn.fnamemodify(target_file, ":p"),
@@ -159,6 +169,60 @@ local cjk = utils.parse_file_path_at("修改 中文目录/文件.lua:3:2 完成"
 assert_true(cjk ~= nil, "Parser should match non-ASCII file names")
 assert_equal(cjk.path, "中文目录/文件.lua", "Parser should return the non-ASCII path")
 assert_equal(cjk.line, 3, "Parser should return the line for a non-ASCII path")
+
+-- Line-range and GitHub-style suffixes keep their line numbers.
+local range = utils.parse_file_path_at("changed src/nested/target.lua:2-4 now", 12, resolve)
+assert_equal(range.line, 2, "A `:start-end` range should use its start line")
+assert_equal(range.path, "src/nested/target.lua", "A `:start-end` range should strip the range")
+
+local github = utils.parse_file_path_at("changed src/nested/target.lua#L3 now", 12, resolve)
+assert_equal(github.line, 3, "A `#L3` suffix should set the line")
+assert_equal(github.path, "src/nested/target.lua", "A `#L3` suffix should be stripped")
+
+-- grep/ripgrep print `path:line:col:text`; the trailing text must be ignored.
+local grep_match = utils.parse_file_path_at("src/nested/target.lua:3:2:local x = 1", 12, resolve)
+assert_equal(grep_match.path, "src/nested/target.lua", "A grep match should resolve the path")
+assert_equal(grep_match.line, 3, "A grep match should resolve the line")
+assert_equal(grep_match.col, 2, "A grep match should resolve the column")
+
+local grep_no_col = utils.parse_file_path_at("src/nested/target.lua:3:local x = 1", 12, resolve)
+assert_equal(grep_no_col.path, "src/nested/target.lua", "`path:line:text` should resolve the path")
+assert_equal(grep_no_col.line, 3, "`path:line:text` should resolve the line")
+
+-- Git diff headers carry an `a/` or `b/` prefix that is not a real directory.
+assert_equal(
+	utils.resolve_file_path("b/src/nested/target.lua", tmp_dir),
+	vim.fn.fnamemodify(target_file, ":p"),
+	"A git diff `b/` prefix should be resolved away"
+)
+assert_equal(
+	utils.resolve_file_path("a/src/nested/target.lua", tmp_dir),
+	vim.fn.fnamemodify(target_file, ":p"),
+	"A git diff `a/` prefix should be resolved away"
+)
+
+-- File names containing characters that are also common in prose are matched
+-- only because the wider candidate exists on disk.
+local spaced_file = tmp_dir .. "/my file.lua"
+vim.fn.writefile({ "spaced" }, spaced_file)
+local spaced = utils.parse_file_path_at("changed my file.lua now", 10, resolve_from(tmp_dir))
+assert_true(spaced ~= nil, "A file name with a space should be matched")
+assert_equal(spaced.path, "my file.lua", "A file name with a space should keep the whole name")
+
+local paren_file = tmp_dir .. "/src/a(1).lua"
+vim.fn.writefile({ "paren" }, paren_file)
+local parens = utils.parse_file_path_at("changed src/a(1).lua now", 12, resolve_from(tmp_dir))
+assert_equal(parens.path, "src/a(1).lua", "A file name with parentheses should be matched")
+
+-- Prose must still not be treated as a file name.
+for _, prose in ipairs({ "changed something here now", "run npm install", "see also the docs" }) do
+	for col = 1, #prose do
+		assert_true(
+			utils.parse_file_path_at(prose, col, resolve_from(tmp_dir)) == nil,
+			"Prose should not be matched: " .. prose
+		)
+	end
+end
 
 vim.fn.delete(tmp_dir, "rf")
 print("codock opens clicked file paths in the editor window")

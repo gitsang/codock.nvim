@@ -29,12 +29,20 @@ function M.open_at_mouse()
 		return false
 	end
 
-	local clicked = utils.parse_file_path_at(line, mouse.column)
+	local base_cwd = utils.get_terminal_cwd_for(term_buf)
+
+	-- Resolving is also what lets the parser recognize file names containing
+	-- characters that are otherwise ambiguous (spaces, parentheses, `#`).
+	local function resolve(path)
+		return utils.resolve_file_path(path, base_cwd)
+	end
+
+	local clicked = utils.parse_file_path_at(line, mouse.column, resolve)
 	if not clicked then
 		return false
 	end
 
-	local abs_path = utils.resolve_file_path(clicked.path, utils.get_terminal_cwd_for(term_buf))
+	local abs_path = resolve(clicked.path)
 	if not abs_path then
 		return false
 	end

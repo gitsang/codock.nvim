@@ -232,16 +232,60 @@ end
 local PATH_CHARS = "%w%._~/@%+%-\128-\255"
 -- A path-like token, including any `:line` / `:col` suffix. Lua patterns cannot
 -- make a capture group optional, so the suffix is split off afterwards.
-local PATH_TOKEN_PATTERN = "([" .. PATH_CHARS .. "][" .. PATH_CHARS .. ":]*)"
+local PATH_TOKEN_PATTERN = "([" .. PATH_CHARS .. "][" .. PATH_CHARS .. ":-]*)"
 -- Punctuation that usually belongs to the surrounding prose, not to the path.
 local TRAILING_PUNCTUATION_PATTERN = "[%.,;:%)%]}>\"']+$"
+-- How far a token may grow on either side when widening it into a name.
+local WIDEN_LIMIT = 24
+-- Characters that are only accepted as part of a path when the wider candidate
+-- resolves to an existing file. Spaces, parentheses, commas and quotes are
+-- common in real file names but also in prose, so they need that extra check.
+local WIDEN_EXTRA_CHARS = {
+	[" "] = true,
+	["%"] = true,
+	["#"] = true,
+	["!"] = true,
+	["$"] = true,
+	["&"] = true,
+	["'"] = true,
+	["("] = true,
+	[")"] = true,
+	[","] = true,
+	[";"] = true,
+	["="] = true,
+	["["] = true,
+	["]"] = true,
+	["{"] = true,
+	["}"] = true,
+	["^"] = true,
+	["`"] = true,
+}
+
+---Check whether a single character may be absorbed while widening a token.
+---@param char string
+---@return boolean
+local function is_widen_char(char)
+	if char == "" then
+		return false
+	end
+	if char:byte() >= 128 then
+		return true
+	end
+	if char:match("[%w%._~/@%+%-]") then
+		return true
+	end
+	return WIDEN_EXTRA_CHARS[char] == true
+end
 
 ---@class CodockClickedPath
 ---@field path string path as printed in the terminal
 ---@field line integer|nil 1-based line from a `:line` suffix
 ---@field col integer|nil 1-based column from a `:col` suffix
 
----Split a trailing `:line` or `:line:col` suffix off a path token.
+---Split a trailing line or column suffix off a path token.
+---
+---Supports the `:line`, `:line:col` and `#Lline` (GitHub-style) forms. A
+---`-` separated range such as `:12-15` keeps the range and reports its start.
 ---@param token string
 ---@return string path
 ---@return integer|nil line
@@ -253,12 +297,120 @@ local function split_position_suffix(token)
 		return token:sub(1, #token - suffix_len), tonumber(first), tonumber(second)
 	end
 
+	local first_range, second_range = token:match(":(%d+)%-(%d+)$")
+	if first_range then
+		local suffix_len = #first_range + #second_range + 2
+		return token:sub(1, #token - suffix_len), tonumber(first_range), nil
+	end
+
+	local hash_line = token:match("#L(%d+)$")
+	if hash_line then
+		return token:sub(1, #token - #hash_line - 2), tonumber(hash_line), nil
+	end
+
 	local line = token:match(":(%d+)$")
 	if line then
 		return token:sub(1, #token - #line - 1), tonumber(line), nil
 	end
 
+	-- `path:line:col:text` and `path:line:text`, as printed by grep/ripgrep and
+	-- by compilers. The trailing text is dropped; only the position is kept.
+	local grep_path, grep_line, grep_col = token:match("^(.-):(%d+):(%d+):")
+	if grep_path and grep_path ~= "" then
+		return grep_path, tonumber(grep_line), tonumber(grep_col)
+	end
+
+	local grep_file, grep_line_only = token:match("^(.-):(%d+):")
+	if grep_file and grep_file ~= "" then
+		return grep_file, tonumber(grep_line_only), nil
+	end
+
 	return token, nil, nil
+end
+
+---Try to widen a strict token into an existing file name.
+---
+---Real file names may contain characters that are also common in prose (spaces,
+---parentheses, commas, `=`), and terminal output may quote them. Both make the
+---strict token too short. Widening is therefore only accepted when the wider
+---candidate resolves to an existing file, which keeps prose from being matched.
+---@param line string
+---@param start_index integer 1-based byte column where the strict token starts
+---@param end_index integer 1-based byte column where the strict token ends
+---@param col integer 1-based byte column of the click
+---@param resolve fun(path: string): string|nil
+---@return CodockClickedPath|nil
+local function widen_token(line, start_index, end_index, col, resolve)
+	local before = line:sub(1, start_index - 1)
+	local after = line:sub(end_index + 1)
+	local token = line:sub(start_index, end_index)
+
+	-- How far the token may grow on either side through ambiguous characters.
+	local function ambiguous_run(text, from_end)
+		local count = 0
+		while count < WIDEN_LIMIT do
+			local char
+			if from_end then
+				char = text:sub(from_end - count, from_end - count)
+			else
+				char = text:sub(count + 1, count + 1)
+			end
+			if not is_widen_char(char) then
+				break
+			end
+			count = count + 1
+		end
+		return count
+	end
+
+	-- Start positions to try, as offsets from the start of the strict token.
+	-- Negative offsets grow to the left; they also cover a glued `word:` prefix
+	-- (as in `modified:src/a.lua`) that the strict token swallowed because `:`
+	-- is part of a `:line:col` suffix.
+	local left = ambiguous_run(before, #before)
+	local from_offsets = {}
+	for extra_left = 0, left do
+		table.insert(from_offsets, -extra_left)
+	end
+	for colon in token:gmatch("():()") do
+		table.insert(from_offsets, colon)
+	end
+
+	local right = ambiguous_run(after, nil)
+
+	-- Nothing to do when the click is not next to (or inside) the token.
+	if col < start_index - left or col > end_index + right then
+		return nil
+	end
+
+	local best, best_score, best_length = nil, nil, nil
+	for _, from_offset in ipairs(from_offsets) do
+		for extra_right = 0, right do
+			local from = start_index + from_offset
+			local to = end_index + extra_right
+			local trimmed = line:sub(from, to):gsub(TRAILING_PUNCTUATION_PATTERN, "")
+			if trimmed ~= "" then
+				local path, line_number, col_number = split_position_suffix(trimmed)
+				-- The click must be inside the candidate the user points at.
+				if path ~= "" and col >= from and col <= to and resolve(path) then
+					-- Prefer a candidate that carries a position, then the
+					-- shortest one. The `#Lline` form only resolves with its
+					-- suffix attached, so preferring positions keeps the line.
+					local score = (line_number ~= nil or col_number ~= nil) and 1 or 0
+					if
+						best_score == nil
+						or score > best_score
+						or (score == best_score and #path < best_length)
+					then
+						best = { path = path, line = line_number, col = col_number }
+						best_score, best_length = score, #path
+					end
+				end
+			end
+		end
+	end
+
+	return best
 end
 
 ---Find the file path under a byte column in a line of terminal output.
@@ -266,10 +418,17 @@ end
 ---A `:line` and `:col` suffix is part of the match, so a click anywhere on
 ---`path/to/file.lua:12:3` opens the file at that position. Trailing prose
 ---punctuation (as in `see path/to/file.lua.`) is not part of the path.
+---
+---When `resolve` is given, tokens that do not resolve on their own are widened
+---to cover characters such as spaces, parentheses and `#`, and accepted only if
+---the wider candidate is an existing file. This is what makes names like
+---`my file.lua`, `src/a(1).lua` or `file.lua#L12` clickable without turning
+---ordinary prose into a file name.
 ---@param line string
 ---@param col integer 1-based byte column of the click
+---@param resolve? fun(path: string): string|nil
 ---@return CodockClickedPath|nil
-function M.parse_file_path_at(line, col)
+function M.parse_file_path_at(line, col, resolve)
 	local init = 1
 	while true do
 		local start_index, end_index, token = line:find(PATH_TOKEN_PATTERN, init)
@@ -286,15 +445,40 @@ function M.parse_file_path_at(line, col)
 			local token_end = start_index + #trimmed - 1
 
 			if path ~= "" then
+				-- Anywhere on the token counts, so the trailing text of a grep
+				-- match (`file:12:3:some code`) is clickable as well.
 				local in_path = col >= start_index and col <= path_end
-				local in_suffix = line_number ~= nil and col > path_end and col <= token_end
+				local in_suffix = col > path_end and col <= token_end
 				if in_path or in_suffix then
-					return {
-						path = path,
-						line = line_number,
-						col = col_number,
-					}
+					-- `file.lua#L12` keeps its line even though `#` is not part of
+					-- the strict token, so look for that form right after the token.
+					if not line_number and not col_number then
+						local hash_line = line:sub(end_index + 1):match("^#L(%d+)")
+						if hash_line then
+							line_number = tonumber(hash_line)
+						end
+					end
+					-- A strict token wins outright when it is a real file, or when
+					-- no resolver was given (pure parsing).
+					if not resolve or resolve(path) then
+						return {
+							path = path,
+							line = line_number,
+							col = col_number,
+						}
+					end
 				end
+			end
+		end
+
+		-- The strict token is not a file: it may be a fragment of a longer name
+		-- (spaces, parentheses, `#L12`, `modified:` ...). Only a candidate that
+		-- contains the click and actually exists is accepted, so prose is still
+		-- left alone.
+		if resolve then
+			local widened = widen_token(line, start_index, end_index, col, resolve)
+			if widened then
+				return widened
 			end
 		end
 
@@ -316,24 +500,35 @@ function M.resolve_file_path(candidate, base_cwd)
 		return nil
 	end
 
-	local candidates = {}
-	if path:sub(1, 1) == "/" or path:sub(1, 1) == "~" then
-		table.insert(candidates, vim.fn.expand(path))
-	else
-		if base_cwd and base_cwd ~= "" then
-			table.insert(candidates, base_cwd .. "/" .. path)
-		end
-		local cwd = vim.fn.getcwd()
-		if cwd ~= "" then
-			table.insert(candidates, cwd .. "/" .. path)
-		end
+	-- Variants of the printed path, tried in order. Git prints diff paths with
+	-- an `a/` or `b/` prefix, so the unprefixed form is a fallback; the literal
+	-- path always wins when it exists.
+	local variants = { path }
+	local stripped = path:match("^[ab]/(.+)$")
+	if stripped and stripped ~= "" then
+		table.insert(variants, stripped)
 	end
 
-	for _, candidate_path in ipairs(candidates) do
-		local abs_path = vim.fn.fnamemodify(candidate_path, ":p")
-		local stat = vim.uv.fs_stat(abs_path)
-		if stat and stat.type == "file" then
-			return abs_path
+	for _, variant in ipairs(variants) do
+		local candidates = {}
+		if variant:sub(1, 1) == "/" or variant:sub(1, 1) == "~" then
+			table.insert(candidates, vim.fn.expand(variant))
+		else
+			if base_cwd and base_cwd ~= "" then
+				table.insert(candidates, base_cwd .. "/" .. variant)
+			end
+			local cwd = vim.fn.getcwd()
+			if cwd ~= "" then
+				table.insert(candidates, cwd .. "/" .. variant)
+			end
+		end
+
+		for _, candidate_path in ipairs(candidates) do
+			local abs_path = vim.fn.fnamemodify(candidate_path, ":p")
+			local stat = vim.uv.fs_stat(abs_path)
+			if stat and stat.type == "file" then
+				return abs_path
+			end
 		end
 	end
 

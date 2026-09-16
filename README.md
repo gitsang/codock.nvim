@@ -86,15 +86,25 @@ You can find how to define prompt and executable actions in [Custom Actions Tuto
 
 ### 2.5 Opening File Paths by Clicking
 
-Clicking a file path in a codock terminal opens it in the editor window to the left of the terminal, without leaving terminal mode, so the CLI session keeps running:
+Clicking a file path in a codock terminal opens it in the editor window to the left of the terminal, without leaving terminal mode, so the CLI session keeps running.
+
+Supported formats:
 
 - `src/main.lua` - open the file
 - `src/main.lua:42` - open the file and jump to line 42
 - `src/main.lua:42:7` - open the file and jump to line 42, column 7
+- `src/main.lua:42-50` - a line range, jumps to line 42
+- `src/main.lua#L42` - GitHub-style line link
+- `src/main.lua:42:7:some text` - a `grep`/ripgrep match, the trailing text is ignored
+- `b/src/main.lua` - a git diff path, the `a/` and `b/` prefixes are resolved away
 
-Relative paths are resolved against the terminal working directory first and the Neovim working directory second, so paths printed by the CLI resolve correctly even after it changed directory. Absolute paths and `~/` paths work as well, and a leading `@` (as produced by `:CodockFilePosYank`) is ignored.
+Paths may be wrapped in quotes, backticks, parentheses, brackets or angle brackets, and prose punctuation after the path (as in `see src/main.lua.`) is not treated as part of the name. Absolute paths and `~/` paths work, and a leading `@` (as produced by `:CodockFilePosYank`) is ignored.
 
-Clicks are only handled when the text under the cursor resolves to an existing file; any other click keeps its normal behavior, including text selection and passing the click through to the CLI. Paths are matched anywhere in the line, so both `see src/main.lua.` and `error at src/main.lua:42:7:` work.
+Relative paths are resolved against the terminal working directory first and the Neovim working directory second, so paths printed by the CLI resolve correctly even after it changed directory.
+
+> The clicked text must refer to a file that actually exists. A bare file name printed by the CLI (such as `utils.lua` when the file is really at `lua/codock/utils.lua`), a path relative to a directory the CLI knows but Neovim does not, or a path to a directory will not open. Files whose names contain characters that are also common in prose (spaces, parentheses, commas, `#`) are matched too, since a wider candidate is accepted once it resolves to an existing file.
+
+Clicks are only handled when the text under the cursor resolves to an existing file; any other click keeps its normal behavior, including text selection and passing the click through to the CLI.
 
 Disable the feature with:
 
