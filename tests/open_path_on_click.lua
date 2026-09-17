@@ -18,7 +18,6 @@ local function assert_equal(actual, expected, message)
 end
 
 local utils = require("codock.utils")
-local open_path = require("codock.open_path")
 
 -- Setup ---------------------------------------------------------------------
 
@@ -172,95 +171,6 @@ assert_true(
 	"Opening must list the buffer so the buffer line shows it"
 )
 
--- Opening in a split --------------------------------------------------------
-
--- `open_file_in_split` gives the file a window of its own, so the buffer the
--- anchor window displays is left alone and focus stays where it was.
-local split_one = tmp_dir .. "/src/split_one.lua"
-local split_two = tmp_dir .. "/src/split_two.lua"
-vim.fn.writefile({ "one", "two", "three" }, split_one)
-vim.fn.writefile({ "a", "b" }, split_two)
-
-local anchor_win = file_win
-local anchor_buf = vim.api.nvim_win_get_buf(anchor_win)
-local windows_before = #vim.api.nvim_tabpage_list_wins(0)
-local current_before = vim.api.nvim_get_current_win()
-
-local new_win = utils.open_file_in_split(term_win, anchor_win, split_one, 2, 1)
-assert_true(new_win ~= nil, "Opening in a split should create a window")
-assert_equal(
-	#vim.api.nvim_tabpage_list_wins(0),
-	windows_before + 1,
-	"Opening in a split should add exactly one window"
-)
-assert_equal(
-	vim.api.nvim_win_get_buf(anchor_win),
-	anchor_buf,
-	"The anchor window must keep the buffer it was showing"
-)
-assert_equal(
-	vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(new_win)),
-	vim.fn.fnamemodify(split_one, ":p"),
-	"The new window should show the opened file"
-)
-assert_equal(
-	vim.api.nvim_win_get_cursor(new_win)[1],
-	2,
-	"The new window should use the requested line"
-)
-assert_equal(
-	vim.api.nvim_get_current_win(),
-	current_before,
-	"Opening in a split must not change the current window"
-)
-
--- A file that is already on screen is reused instead of split again.
-local reused = utils.open_file_in_split(term_win, anchor_win, split_one, 3, nil)
-assert_equal(reused, new_win, "An already visible file should reuse its window")
-assert_equal(
-	#vim.api.nvim_tabpage_list_wins(0),
-	windows_before + 1,
-	"Reusing a window must not add another one"
-)
-assert_equal(
-	vim.api.nvim_win_get_cursor(new_win)[1],
-	3,
-	"The reused window should move to the new line"
-)
-
--- A different file gets a window of its own.
-local second_win = utils.open_file_in_split(term_win, anchor_win, split_two, nil, nil)
-assert_true(second_win ~= nil and second_win ~= new_win, "A new file should get a new window")
-assert_equal(
-	#vim.api.nvim_tabpage_list_wins(0),
-	windows_before + 2,
-	"A new file should add exactly one window"
-)
-assert_equal(
-	vim.api.nvim_win_get_buf(anchor_win),
-	anchor_buf,
-	"The anchor window must still keep its buffer"
-)
-
--- An invalid anchor is reported instead of raising.
-local split_three = tmp_dir .. "/src/split_three.lua"
-vim.fn.writefile({ "x" }, split_three)
-assert_true(
-	utils.open_file_in_split(term_win, 123456, split_three, 1, nil) == nil,
-	"An invalid anchor window should return nil"
-)
-
--- `find_window_showing` finds the window that displays a buffer.
-assert_equal(
-	utils.find_window_showing(vim.api.nvim_win_get_buf(new_win)),
-	new_win,
-	"The window showing a buffer should be found"
-)
-assert_true(
-	utils.find_window_showing(term_buf) == term_win,
-	"The terminal window shows its own buffer"
-)
-
 -- A plain terminal window must never be used as a file target, otherwise its
 -- buffer would be replaced by the opened file.
 vim.cmd("vsplit")
@@ -338,31 +248,6 @@ for _, prose in ipairs({ "changed something here now", "run npm install", "see a
 		)
 	end
 end
-
--- Option wiring -------------------------------------------------------------
-
--- `open_path_in_split` picks between the two ways of opening a file. It is
--- off unless explicitly enabled, and an absent option must not turn it on.
-local function setup_with(extra)
-	local opts = {
-		width = 40,
-		codock_cmd = command,
-		copy_to_clipboard = false,
-	}
-	for key, value in pairs(extra) do
-		opts[key] = value
-	end
-	require("codock").setup(opts)
-end
-
-setup_with({})
-assert_true(not open_path.split_enabled(), "Files should open in the editor window by default")
-
-setup_with({ open_path_in_split = true })
-assert_true(open_path.split_enabled(), "`open_path_in_split = true` should use a split")
-
-setup_with({ open_path_in_split = false })
-assert_true(not open_path.split_enabled(), "`open_path_in_split = false` should reuse the window")
 
 vim.fn.delete(tmp_dir, "rf")
 print("codock opens clicked file paths in the editor window")

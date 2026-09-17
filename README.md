@@ -114,14 +114,6 @@ opts = {
 }
 ```
 
-To give the clicked file a split window of its own instead - so the file being edited stays visible next to it - set:
-
-```lua
-opts = {
-  open_path_in_split = true,
-}
-```
-
 ## 3. Supported AI CLI Tools
 
 This plugin supports various AI CLI tools:

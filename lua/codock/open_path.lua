@@ -2,28 +2,10 @@ local M = {}
 
 local utils = require("codock.utils")
 
----Whether clicked files open in a window of their own instead of replacing the
----buffer of the editor window next to the terminal.
-local open_in_split = false
-
----Choose how clicked files are opened.
----
----By default the file replaces the buffer shown in the editor window next to
----the terminal, like a normal `:edit`, and is left listed so the buffer line
----can switch back to the previous file. With `enabled` the file gets a split
----window of its own instead, so the buffer being edited stays visible.
----@param enabled boolean
-function M.enable_split(enabled)
-	open_in_split = enabled
-end
-
----Whether clicked files open in a window of their own.
----@return boolean
-function M.split_enabled()
-	return open_in_split
-end
-
 ---Open the file path under the mouse in an editor window.
+---
+---The file replaces the buffer shown in that window, like a normal `:edit`,
+---but is left listed so the buffer line can switch back to the previous file.
 ---
 ---Returns `false` when the click should keep its native behavior, which lets
 ---the caller replay the mouse event. That is the case for clicks outside a
@@ -66,18 +48,6 @@ function M.open_at_mouse()
 	local abs_path = resolve(clicked.path)
 	if not abs_path then
 		return false
-	end
-
-	if open_in_split then
-		-- A window of its own keeps the buffer being edited on screen. The
-		-- terminal window is used as a fallback anchor so a click still opens
-		-- something when no editor window is visible.
-		local anchor_win = utils.find_file_window(mouse.winid) or mouse.winid
-		if not utils.open_file_in_split(mouse.winid, anchor_win, abs_path, clicked.line, clicked.col) then
-			return false
-		end
-
-		return true
 	end
 
 	local target_win = utils.find_file_window(mouse.winid)
