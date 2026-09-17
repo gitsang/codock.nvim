@@ -18,7 +18,8 @@
     codock_cmd = "pi", -- 终端中运行的命令（pi、opencode、claude、codex 等）
     copy_to_clipboard = false, -- 复制到系统剪贴板
     header = true, -- 在每个终端窗口上方显示一行带槽位号的头部
-    open_path_on_click = true, -- 点击终端中的文件路径时在编辑器窗口中打开
+    open_path_on_click = true, -- 点击终端中的文件路径时打开文件
+    open_path_in_split = true, -- 在新的分屏中打开点击的文件，保留当前 buffer
     actions = {},
   },
   cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth" },
@@ -86,7 +87,7 @@ count 在 mapping 前同样生效，因此 `2<leader>CCP` 会 toggle 上面配�
 
 ### 2.5 点击打开文件路径
 
-在 codock 终端中点击文件路径，会在终端左侧的编辑器窗口中打开该文件，且不会离开终端模式，因此 CLI 会话可以继续运行。
+在 codock 终端中点击文件路径，会在终端旁边新开一个分屏打开该文件，且不会离开终端模式，因此 CLI 会话可以继续运行，同时正在编辑的 buffer 也保持可见。如果该文件已经在屏幕上，会直接复用它的窗口，不会重复打开。
 
 支持的格式：
 
@@ -111,6 +112,14 @@ count 在 mapping 前同样生效，因此 `2<leader>CCP` 会 toggle 上面配�
 ```lua
 opts = {
   open_path_on_click = false,
+}
+```
+
+如果希望沿用「编辑器窗口」的方式（即替换该窗口显示的 buffer），可以设置：
+
+```lua
+opts = {
+  open_path_in_split = false,
 }
 ```
 
