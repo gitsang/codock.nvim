@@ -4,16 +4,23 @@ local utils = require("codock.utils")
 
 ---Whether clicked files open in a window of their own instead of replacing the
 ---buffer of the editor window next to the terminal.
-local open_in_split = true
+local open_in_split = false
 
 ---Choose how clicked files are opened.
 ---
----With `enabled` the file gets a split window of its own, so the buffer being
----edited stays visible. Without it the file replaces the buffer shown in the
----editor window next to the terminal.
+---By default the file replaces the buffer shown in the editor window next to
+---the terminal, like a normal `:edit`, and is left listed so the buffer line
+---can switch back to the previous file. With `enabled` the file gets a split
+---window of its own instead, so the buffer being edited stays visible.
 ---@param enabled boolean
 function M.enable_split(enabled)
 	open_in_split = enabled
+end
+
+---Whether clicked files open in a window of their own.
+---@return boolean
+function M.split_enabled()
+	return open_in_split
 end
 
 ---Open the file path under the mouse in an editor window.

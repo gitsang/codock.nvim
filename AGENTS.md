@@ -50,6 +50,7 @@ This is a Neovim plugin written in Lua that opens a terminal with AI CLI tools (
   (including parsing a clicked file path out of terminal output, resolving it
   against the terminal cwd, and opening it in an editor window or a new split)
 - `lua/codock/open_path.lua` - click-to-open handling for file paths in terminal
-  output (new split by default, configurable with `open_path_in_split`)
+  output (opens in the editor window as a listed buffer by default,
+  `open_path_in_split` opens a split instead)
 - Creates Codock user commands (Codock, CodockFilePos, CodockActions, CodockWidth)
 - Supports multiple AI CLI tools via codock_cmd option

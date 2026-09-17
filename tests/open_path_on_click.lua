@@ -146,6 +146,32 @@ assert_true(
 	"Invalid windows should return false"
 )
 
+-- A file opened this way must be a listed buffer, like a normal `:edit`, so it
+-- shows up in the buffer line and can be switched back to.
+assert_true(
+	vim.api.nvim_get_option_value("buflisted", { buf = vim.fn.bufnr(other_file) }),
+	"An opened file must be a listed buffer"
+)
+assert_true(
+	vim.api.nvim_get_option_value("buflisted", { buf = vim.fn.bufnr(target_file) }),
+	"An opened file must be a listed buffer"
+)
+-- `bufadd()` alone leaves the buffer unlisted, which is what made clicked files
+-- invisible to the buffer line.
+local unlisted = vim.fn.bufadd(tmp_dir .. "/src/unlisted.lua")
+assert_true(
+	not vim.api.nvim_get_option_value("buflisted", { buf = unlisted }),
+	"bufadd is expected to create an unlisted buffer"
+)
+assert_true(
+	utils.open_file_at(file_win, tmp_dir .. "/src/unlisted.lua", 1, nil),
+	"Opening a previously unlisted buffer should succeed"
+)
+assert_true(
+	vim.api.nvim_get_option_value("buflisted", { buf = unlisted }),
+	"Opening must list the buffer so the buffer line shows it"
+)
+
 -- Opening in a split --------------------------------------------------------
 
 -- `open_file_in_split` gives the file a window of its own, so the buffer the
@@ -312,6 +338,31 @@ for _, prose in ipairs({ "changed something here now", "run npm install", "see a
 		)
 	end
 end
+
+-- Option wiring -------------------------------------------------------------
+
+-- `open_path_in_split` picks between the two ways of opening a file. It is
+-- off unless explicitly enabled, and an absent option must not turn it on.
+local function setup_with(extra)
+	local opts = {
+		width = 40,
+		codock_cmd = command,
+		copy_to_clipboard = false,
+	}
+	for key, value in pairs(extra) do
+		opts[key] = value
+	end
+	require("codock").setup(opts)
+end
+
+setup_with({})
+assert_true(not open_path.split_enabled(), "Files should open in the editor window by default")
+
+setup_with({ open_path_in_split = true })
+assert_true(open_path.split_enabled(), "`open_path_in_split = true` should use a split")
+
+setup_with({ open_path_in_split = false })
+assert_true(not open_path.split_enabled(), "`open_path_in_split = false` should reuse the window")
 
 vim.fn.delete(tmp_dir, "rf")
 print("codock opens clicked file paths in the editor window")

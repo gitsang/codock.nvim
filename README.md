@@ -19,7 +19,6 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
     copy_to_clipboard = false, -- Copy to system clipboard
     header = true, -- Show a one-line header with the slot number above each terminal
     open_path_on_click = true, -- Open file paths clicked in the terminal
-    open_path_in_split = true, -- Open clicked files in a new split, keeping the current buffer
     actions = {},
   },
   cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth" },
@@ -87,7 +86,7 @@ You can find how to define prompt and executable actions in [Custom Actions Tuto
 
 ### 2.5 Opening File Paths by Clicking
 
-Clicking a file path in a codock terminal opens it in a new split next to the terminal, without leaving terminal mode, so the CLI session keeps running and the buffer being edited stays visible. A file that is already on screen is reused instead of opened a second time.
+Clicking a file path in a codock terminal opens it in the editor window next to the terminal, without leaving terminal mode, so the CLI session keeps running. The file is opened like a normal `:edit`: it becomes a listed buffer, so it shows up in the buffer line (and in `:ls`) and the file that was displayed stays one switch away.
 
 Supported formats:
 
@@ -115,11 +114,11 @@ opts = {
 }
 ```
 
-To reuse the editor window instead - replacing the buffer shown in it - set:
+To give the clicked file a split window of its own instead - so the file being edited stays visible next to it - set:
 
 ```lua
 opts = {
-  open_path_in_split = false,
+  open_path_in_split = true,
 }
 ```
 

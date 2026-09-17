@@ -608,6 +608,9 @@ end
 ---
 ---`bufadd()`/`bufload()` are used instead of `:edit` so filetype detection
 ---and other `BufRead` hooks still run without touching the current window.
+---`bufadd()` deliberately leaves `'buflisted'` off, so the buffer is marked as
+---listed afterwards to match a normally opened file: it then shows up in the
+---buffer line (and in `:ls`) and can be switched back to.
 ---@param abs_path string absolute path of a file
 ---@return integer|nil buf
 local function load_file_buffer(abs_path)
@@ -616,6 +619,8 @@ local function load_file_buffer(abs_path)
 	if not vim.api.nvim_buf_is_loaded(buf) then
 		return nil
 	end
+
+	vim.api.nvim_set_option_value("buflisted", true, { buf = buf })
 
 	return buf
 end
