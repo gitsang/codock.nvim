@@ -19,7 +19,7 @@
     copy_to_clipboard = false, -- 复制到系统剪贴板
     header = true, -- 在每个终端窗口上方显示一行带槽位号的头部
     open_path_on_click = true, -- 点击终端中的文件路径时打开文件
-    follow_output = true, -- 终端失焦时自动滚动到底部以跟随最新输出
+    follow_output = true, -- 终端持续跟随最新输出（失焦与重新聚焦时均生效）
     actions = {},
   },
   cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth", "CodockScroll" },
@@ -87,16 +87,21 @@ count 在 mapping 前同样生效，因此 `2<leader>CCP` 会 toggle 上面配�
 
 ### 2.5 CodockScroll 命令
 
-`:CodockScroll` 用于切换「自动滚动到底部」行为。默认情况下，codock 终端窗口失去焦点时会自动滚动回最新输出（Neovim 仅在终端光标位于最后一行时才会跟随输出），因此即使你在别处编辑，运行中的 CLI 会话也会持续跟随。
+`:CodockScroll` 用于切换「自动滚动到底部」行为。默认情况下，codock 终端会持续跟随最新输出：失去焦点时自动滚动回底部（Neovim 仅在终端光标位于最后一行时才会跟随输出），重新聚焦窗口时自动进入终端模式。因此即使你在别处编辑，运行中的 CLI 会话也会持续跟随。
 
 - `:CodockScroll` - 切换该行为
 - `:CodockScroll off` - 保持你当前的滚动位置（CLI 继续输出时也能浏览历史）
 - `:CodockScroll on` - 重新开启
 - `:CodockScroll status` - 查看当前状态
 
+关闭后两个环节都会停用：
+
+- 失去焦点时不再滚动到底部。
+- 重新聚焦窗口时不再自动进入终端模式，因此视口保持在你浏览的位置，而不会被终端光标（位于输出末尾）拉到底部。需要输入时自己按 `i` 或 `a` 进入终端模式。
+
 修改会立即作用于所有已存在的 codock 终端，包括在关闭状态下创建的终端。
 
-> 关闭该行为后，终端失焦期间产生的新输出仍会写入 buffer，CLI 不会停止；只是视口不再跟随，待窗口重新获得焦点后会追上。
+> 关闭该行为后，终端失焦期间产生的新输出仍会写入 buffer，CLI 不会停止；只是视口不再跟随。想看最新内容请自己向下滚或按 `G`。
 
 可通过 `follow_output` 选项设置初始值，或用 `:CodockScroll off` 只在当前会话中关闭。
 
@@ -145,7 +150,7 @@ opts = {
 
 ### 4.1 自动滚动到底部
 
-当 codock 终端窗口失去焦点时，插件会自动将其滚动到底部，以便持续跟随最新输出（Neovim 仅在终端光标位于最后一行时才会跟随输出）。可用 `:CodockScroll` 在运行时切换：
+当 codock 终端窗口失去焦点时，插件会自动将其滚动到底部，以便持续跟随最新输出（Neovim 仅在终端光标位于最后一行时才会跟随输出）；重新聚焦窗口时会自动进入终端模式。可用 `:CodockScroll` 在运行时切换：
 
 ```vim
 :CodockScroll off
@@ -161,7 +166,9 @@ opts = {
 }
 ```
 
-该行为由 `codock_nvim` augroup 中的 autocmd 实现，同时注册在 `WinLeave` 和 `TermLeave` 两个事件上。`:CodockScroll off` 会彻底移除它们（之后新开的终端也不会注册），`:CodockScroll on` 则会为所有已存在的 codock 终端重新注册。另一条 `WinEnter` → `startinsert` 的 autocmd 不受影响。
+关闭该行为后，聚焦 codock 终端会停在普通模式并保持你正在浏览的位置，而不会跳到输出末尾。这是有意为之：进入终端模式会把光标移到终端自身的光标（位于最后一行），Neovim 必须滚动视口才能让它可见。需要输入时按 `i` 或 `a` 即可。
+
+该行为由 `codock_nvim` augroup 中的 autocmd 实现，同时注册在 `WinLeave` 和 `TermLeave` 两个事件上。`:CodockScroll off` 会彻底移除它们（之后新开的终端也不会注册），`:CodockScroll on` 则会为所有已存在的 codock 终端重新注册。`WinEnter` 上的 autocmd 无论开关都保留（它同时负责刷新槽位头部），但只在开启状态下才进入终端模式。
 
 > 旧文档建议手动清除这些 autocmd（`:autocmd! codock_nvim WinLeave`）。现在请使用 `:CodockScroll off`，它同时覆盖之后新建的终端。
 

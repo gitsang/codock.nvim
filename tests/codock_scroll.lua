@@ -49,6 +49,20 @@ local function find_other_win(term_win)
 	return nil
 end
 
+---Count the hooks that enter terminal mode when the terminal window is entered.
+---@param buf integer
+---@return integer
+local function win_enter_hook_count(buf)
+	local autocmds = vim.api.nvim_get_autocmds({ group = "codock_nvim", event = "WinEnter" })
+	local count = 0
+	for _, autocmd in ipairs(autocmds) do
+		if autocmd.buffer == buf then
+			count = count + 1
+		end
+	end
+	return count
+end
+
 ---Scroll the terminal to the first line and leave the window.
 ---@param term_win integer
 ---@param other_win integer
@@ -87,6 +101,13 @@ assert_true(
 	"Auto scroll should have moved the cursor to the last line"
 )
 assert_true(scroll_hook_count(term_buf) == 2, "Sleeping must not duplicate the scroll hooks")
+
+-- The WinEnter hook stays registered either way: it also refreshes the slot
+-- header, and it is the hook that decides whether to enter terminal mode.
+assert_true(
+	win_enter_hook_count(term_buf) == 1,
+	"WinEnter hook should stay registered so the slot header keeps working"
+)
 
 -- :CodockScroll off removes the hooks from terminals that already exist.
 vim.cmd("CodockScroll off")

@@ -95,7 +95,9 @@ end
 ---
 ---Neovim only tails terminal output while the terminal cursor is on the last
 ---line, so with this disabled an unfocused CLI session stops following its
----output until the window is focused again. The `:CodockScroll` command is the
+---output until the window is focused again, and re-entering the window leaves
+---the viewport alone instead of entering terminal mode (which would snap it to
+---the terminal cursor on the last line). The `:CodockScroll` command is the
 ---user-facing entry point.
 ---@param enabled boolean
 function M.enable_follow_output(enabled)
@@ -265,12 +267,19 @@ function M.create(width, codock_cmd, augroup, slot)
 	-- Set up autocmd to enter terminal mode when entering the codock terminal
 	-- buffer. This intentionally checks the buffer instead of the creating
 	-- window so it keeps working after a hidden terminal is shown again.
+	--
+	-- Entering terminal mode makes Neovim show the terminal's own cursor, which
+	-- sits on the last line, so the viewport snaps to the latest output. With
+	-- `follow_output` off the user is browsing the scrollback, so stay in normal
+	-- mode and keep the viewport where it is; pressing `i` or `a` still enters
+	-- terminal mode. The flag is read on every event, so `:CodockScroll` takes
+	-- effect without re-registering this autocmd.
 	vim.api.nvim_create_autocmd("WinEnter", {
 		group = augroup,
 		buffer = buf,
 		callback = function()
 			M.apply_header(vim.api.nvim_get_current_win())
-			if vim.api.nvim_get_current_buf() == buf then
+			if follow_output and vim.api.nvim_get_current_buf() == buf then
 				vim.cmd("startinsert")
 			end
 		end,

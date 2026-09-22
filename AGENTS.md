@@ -58,5 +58,7 @@ This is a Neovim plugin written in Lua that opens a terminal with AI CLI tools (
 - Creates Codock user commands (Codock, CodockFilePos, CodockActions, CodockWidth, CodockScroll)
 - `:CodockScroll` toggles the scroll-to-bottom-on-blur behavior (`on`/`off`/`toggle`/
   `status`, or the `follow_output` option); it re-registers or removes the
-  `WinLeave`/`TermLeave` autocmds for every existing codock terminal
+  `WinLeave`/`TermLeave` autocmds for every existing codock terminal. Turning it
+  off also stops the `WinEnter` hook from re-entering terminal mode, since that
+  would snap the viewport back to the end of the output
 - Supports multiple AI CLI tools via codock_cmd option
