@@ -12,6 +12,20 @@ local show_header = true
 -- Whether clicking a file path in a terminal opens it in an editor window.
 local open_path_on_click = true
 
+-- Whether a terminal is scrolled back to the latest output when it loses focus.
+local follow_output = true
+
+-- The autocmd group used for buffer-local hooks, kept so
+-- `M.enable_follow_output` can re-register the scroll hooks for terminals that
+-- already exist.
+local command_augroup = nil
+
+---Remember the autocmd group the plugin registers its hooks in.
+---@param augroup integer
+function M.set_augroup(augroup)
+	command_augroup = augroup
+end
+
 ---Enable or disable opening file paths by clicking them in a terminal.
 ---@param enabled boolean
 function M.enable_open_path_on_click(enabled)
@@ -56,6 +70,59 @@ function M.find_windows(buf)
 		end
 	end
 	return wins
+end
+
+---Register the hook that keeps a terminal tailing its output after `WinLeave`.
+---@param buf integer terminal buffer
+local function register_scroll_hook(buf)
+	if not follow_output or not command_augroup then
+		return
+	end
+
+	vim.api.nvim_create_autocmd({ "TermLeave", "WinLeave" }, {
+		group = command_augroup,
+		buffer = buf,
+		callback = function()
+			for _, win in ipairs(M.find_windows(buf)) do
+				M.scroll_to_bottom(win, buf)
+			end
+		end,
+	})
+end
+
+---Enable or disable scrolling a terminal back to the latest output when it
+---loses focus.
+---
+---Neovim only tails terminal output while the terminal cursor is on the last
+---line, so with this disabled an unfocused CLI session stops following its
+---output until the window is focused again. The `:CodockScroll` command is the
+---user-facing entry point.
+---@param enabled boolean
+function M.enable_follow_output(enabled)
+	follow_output = enabled
+
+	if not command_augroup then
+		return
+	end
+
+	-- Re-register from scratch so terminals created while the behavior was off
+	-- are covered as well.
+	vim.api.nvim_clear_autocmds({ group = command_augroup, event = { "TermLeave", "WinLeave" } })
+	if not enabled then
+		return
+	end
+
+	for _, buf in pairs(slots) do
+		if utils.is_codock_terminal(buf) then
+			register_scroll_hook(buf)
+		end
+	end
+end
+
+---Whether a terminal is scrolled back to the latest output when it loses focus.
+---@return boolean
+function M.follow_output_enabled()
+	return follow_output
 end
 
 ---Get the terminal buffer registered for a slot.
@@ -210,15 +277,8 @@ function M.create(width, codock_cmd, augroup, slot)
 	})
 
 	-- Keep Neovim's native terminal tailing active after a window loses focus.
-	vim.api.nvim_create_autocmd({ "TermLeave", "WinLeave" }, {
-		group = augroup,
-		buffer = buf,
-		callback = function()
-			for _, win in ipairs(M.find_windows(buf)) do
-				M.scroll_to_bottom(win, buf)
-			end
-		end,
-	})
+	-- `:CodockScroll off` removes this hook again.
+	register_scroll_hook(buf)
 
 	-- Enter terminal mode immediately
 	vim.cmd("startinsert")

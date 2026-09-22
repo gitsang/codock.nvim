@@ -19,9 +19,10 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
     copy_to_clipboard = false, -- Copy to system clipboard
     header = true, -- Show a one-line header with the slot number above each terminal
     open_path_on_click = true, -- Open file paths clicked in the terminal
+    follow_output = true, -- Keep unfocused terminals following the latest output
     actions = {},
   },
-  cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth" },
+  cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth", "CodockScroll" },
   keys = {
       { "<leader>CCO", "<cmd>Codock opencode<cr>", desc = "Toggle Opencode", mode = { "n", "v" } },
       { "<leader>CCC", "<cmd>Codock claude<cr>", desc = "Toggle Claude", mode = { "n", "v" } },
@@ -84,7 +85,22 @@ You can find how to define prompt and executable actions in [Custom Actions Tuto
 - `:CodockWidth 30` - resize all codock terminal windows to 30 columns
 - `:CodockWidth` - reset all codock terminal windows to the current width
 
-### 2.5 Opening File Paths by Clicking
+### 2.5 CodockScroll Command
+
+`:CodockScroll` toggles the auto-scroll-to-bottom behavior. By default a codock terminal scrolls back to its latest output when it loses focus (Neovim only tails terminal output while the terminal cursor is on the last line), so a running CLI session keeps following along while you edit elsewhere.
+
+- `:CodockScroll` - toggle the behavior
+- `:CodockScroll off` - leave the viewport where you put it (browse scrollback while the CLI keeps printing)
+- `:CodockScroll on` - turn it back on
+- `:CodockScroll status` - show the current state
+
+The change applies to every existing codock terminal immediately, including terminals that were created while the behavior was off.
+
+> With the behavior off, output produced while the terminal is unfocused is still appended to the buffer — the CLI keeps streaming. Only the viewport stops following it, and it catches up again once the window is focused.
+
+Set the initial value with the `follow_output` option, or run `:CodockScroll off` for a session-only change.
+
+### 2.6 Opening File Paths by Clicking
 
 Clicking a file path in a codock terminal opens it in the editor window next to the terminal, without leaving terminal mode, so the CLI session keeps running. The file is opened like a normal `:edit`: it becomes a listed buffer, so it shows up in the buffer line (and in `:ls`) and the file that was displayed stays one switch away.
 
@@ -127,24 +143,27 @@ Simply set the `codock_cmd` option to your preferred AI CLI tool.
 
 ## 4. FAQ
 
-### 4.1 Temporarily Disable Auto-Scroll to Bottom
+### 4.1 Auto-Scroll to Bottom
 
-The codock terminal automatically scrolls to the bottom when it loses focus, so it keeps following the latest output (Neovim only tails terminal output while the terminal cursor is on the last line). If you want to browse the terminal output without it jumping to the bottom, disable this behavior temporarily:
+The codock terminal automatically scrolls to the bottom when it loses focus, so it keeps following the latest output (Neovim only tails terminal output while the terminal cursor is on the last line). Toggle it at runtime with `:CodockScroll`:
 
 ```vim
-:autocmd! codock_nvim WinLeave
-:autocmd! codock_nvim TermLeave
+:CodockScroll off
+:CodockScroll on
+:CodockScroll status
 ```
 
-Or via Lua:
+To start with it disabled, set the option:
 
 ```lua
-vim.api.nvim_clear_autocmds({ group = "codock_nvim", event = { "WinLeave", "TermLeave" } })
+opts = {
+  follow_output = false,
+}
 ```
 
-> The scroll-to-bottom behavior is registered on both the `WinLeave` and `TermLeave` events, so both must be removed. The other autocmd (`WinEnter` → `startinsert`) is unaffected.
+The behavior is implemented with autocmds in the `codock_nvim` augroup, registered on both the `WinLeave` and `TermLeave` events. `:CodockScroll off` removes them for good, including from terminals opened later; `:CodockScroll on` registers them again for every existing codock terminal. The other autocmd (`WinEnter` → `startinsert`) is unaffected.
 
-Restart Neovim to re-enable it — the `codock_nvim` augroup is recreated with `clear = true` in `setup()` on every start.
+> Older docs suggested clearing these autocmds by hand (`:autocmd! codock_nvim WinLeave`). `:CodockScroll off` is the supported way now — it also covers terminals created afterwards.
 
 ### 4.2 Temporarily Disable Clicking Paths to Open Files
 

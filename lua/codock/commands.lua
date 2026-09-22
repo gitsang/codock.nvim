@@ -62,6 +62,45 @@ function M.register(opts)
 			)
 		end
 	end, { nargs = "?" })
+
+	-- Create CodockScroll command to toggle the scroll-to-bottom-on-blur hook.
+	--   :CodockScroll        toggle
+	--   :CodockScroll on     keep following the latest output when unfocused
+	--   :CodockScroll off    leave the viewport where the user put it
+	vim.api.nvim_create_user_command("CodockScroll", function(cmd_opts)
+		local arg = cmd_opts.args
+
+		if arg == "status" then
+			vim.notify(
+				string.format("Codock auto scroll is %s", terminal.follow_output_enabled() and "on" or "off"),
+				vim.log.levels.INFO
+			)
+			return
+		end
+
+		local enabled
+		if arg == "" or arg == "toggle" then
+			enabled = not terminal.follow_output_enabled()
+		elseif arg == "on" then
+			enabled = true
+		elseif arg == "off" then
+			enabled = false
+		else
+			vim.notify("CodockScroll expects on, off, toggle or status", vim.log.levels.ERROR)
+			return
+		end
+
+		terminal.enable_follow_output(enabled)
+		vim.notify(
+			string.format("Codock auto scroll turned %s", enabled and "on" or "off"),
+			vim.log.levels.INFO
+		)
+	end, {
+		nargs = "?",
+		complete = function()
+			return { "on", "off", "toggle", "status" }
+		end,
+	})
 end
 
 return M

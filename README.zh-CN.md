@@ -19,9 +19,10 @@
     copy_to_clipboard = false, -- 复制到系统剪贴板
     header = true, -- 在每个终端窗口上方显示一行带槽位号的头部
     open_path_on_click = true, -- 点击终端中的文件路径时打开文件
+    follow_output = true, -- 终端失焦时自动滚动到底部以跟随最新输出
     actions = {},
   },
-  cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth" },
+  cmd = { "Codock", "CodockFilePosPaste", "CodockFilePosYank", "CodockActions", "CodockWidth", "CodockScroll" },
   keys = {
       { "<leader>CCO", "<cmd>Codock opencode<cr>", desc = "Toggle Opencode", mode = { "n", "v" } },
       { "<leader>CCC", "<cmd>Codock claude<cr>", desc = "Toggle Claude", mode = { "n", "v" } },
@@ -84,7 +85,22 @@ count 在 mapping 前同样生效，因此 `2<leader>CCP` 会 toggle 上面配�
 - `:CodockWidth 30` - 将所有 codock 终端窗口宽度调整为 30 列
 - `:CodockWidth` - 将所有 codock 终端窗口重置为当前使用的宽度
 
-### 2.5 点击打开文件路径
+### 2.5 CodockScroll 命令
+
+`:CodockScroll` 用于切换「自动滚动到底部」行为。默认情况下，codock 终端窗口失去焦点时会自动滚动回最新输出（Neovim 仅在终端光标位于最后一行时才会跟随输出），因此即使你在别处编辑，运行中的 CLI 会话也会持续跟随。
+
+- `:CodockScroll` - 切换该行为
+- `:CodockScroll off` - 保持你当前的滚动位置（CLI 继续输出时也能浏览历史）
+- `:CodockScroll on` - 重新开启
+- `:CodockScroll status` - 查看当前状态
+
+修改会立即作用于所有已存在的 codock 终端，包括在关闭状态下创建的终端。
+
+> 关闭该行为后，终端失焦期间产生的新输出仍会写入 buffer，CLI 不会停止；只是视口不再跟随，待窗口重新获得焦点后会追上。
+
+可通过 `follow_output` 选项设置初始值，或用 `:CodockScroll off` 只在当前会话中关闭。
+
+### 2.6 点击打开文件路径
 
 在 codock 终端中点击文件路径，会在终端旁边的编辑器窗口中打开该文件，且不会离开终端模式，因此 CLI 会话可以继续运行。文件会像普通的 `:edit` 一样被打开：它成为一个已列出的 buffer（listed buffer），因此会出现在顶部的 buffer 栏（以及 `:ls`）中，原来显示的文件只需一次切换就能回来。
 
@@ -127,24 +143,27 @@ opts = {
 
 ## 4. 常见问题
 
-### 4.1 临时关闭自动滚动到底部
+### 4.1 自动滚动到底部
 
-当 codock 终端窗口失去焦点时，插件会自动将其滚动到底部，以便持续跟随最新输出（Neovim 仅在终端光标位于最后一行时才会跟随输出）。如果你想浏览终端输出而不希望它自动跳到底部，可以临时禁用该行为：
+当 codock 终端窗口失去焦点时，插件会自动将其滚动到底部，以便持续跟随最新输出（Neovim 仅在终端光标位于最后一行时才会跟随输出）。可用 `:CodockScroll` 在运行时切换：
 
 ```vim
-:autocmd! codock_nvim WinLeave
-:autocmd! codock_nvim TermLeave
+:CodockScroll off
+:CodockScroll on
+:CodockScroll status
 ```
 
-或使用 Lua：
+若想一开始就禁用，请设置选项：
 
 ```lua
-vim.api.nvim_clear_autocmds({ group = "codock_nvim", event = { "WinLeave", "TermLeave" } })
+opts = {
+  follow_output = false,
+}
 ```
 
-> 滚动到底部的行为注册在 `WinLeave` 和 `TermLeave` 两个事件上，需要同时移除。另一条 `WinEnter` → `startinsert` 的 autocmd 不受影响。
+该行为由 `codock_nvim` augroup 中的 autocmd 实现，同时注册在 `WinLeave` 和 `TermLeave` 两个事件上。`:CodockScroll off` 会彻底移除它们（之后新开的终端也不会注册），`:CodockScroll on` 则会为所有已存在的 codock 终端重新注册。另一条 `WinEnter` → `startinsert` 的 autocmd 不受影响。
 
-重启 Neovim 即可重新启用（`setup()` 每次启动都会以 `clear = true` 重建 `codock_nvim` augroup）。
+> 旧文档建议手动清除这些 autocmd（`:autocmd! codock_nvim WinLeave`）。现在请使用 `:CodockScroll off`，它同时覆盖之后新建的终端。
 
 ### 4.2 临时关闭点击路径打开文件
 

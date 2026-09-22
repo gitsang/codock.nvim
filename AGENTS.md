@@ -40,8 +40,10 @@ This is a Neovim plugin written in Lua that opens a terminal with AI CLI tools (
 ## Plugin Structure
 
 - `lua/codock/init.lua` - setup orchestration and default action wiring
-- `lua/codock/terminal.lua` - terminal slot registry, window/buffer lifecycle, and slot header (winbar)
-- `lua/codock/commands.lua` - user command registration (`Codock`, `CodockActions`, `CodockWidth`)
+- `lua/codock/terminal.lua` - terminal slot registry, window/buffer lifecycle,
+  slot header (winbar), and the scroll-to-bottom-on-blur hook
+  (`enable_follow_output`)
+- `lua/codock/commands.lua` - user command registration (`Codock`, `CodockActions`, `CodockWidth`, `CodockScroll`)
 - `lua/codock/actions/select.lua` - action popup selection and execution
 - `lua/codock/actions/default.lua` - built-in action composition and command registration
 - `lua/codock/actions/file_position.lua` - file position yank/paste actions
@@ -53,5 +55,8 @@ This is a Neovim plugin written in Lua that opens a terminal with AI CLI tools (
 - `lua/codock/open_path.lua` - click-to-open handling for file paths in terminal
   output (replaces the editor window's buffer, keeps it listed for the buffer
   line)
-- Creates Codock user commands (Codock, CodockFilePos, CodockActions, CodockWidth)
+- Creates Codock user commands (Codock, CodockFilePos, CodockActions, CodockWidth, CodockScroll)
+- `:CodockScroll` toggles the scroll-to-bottom-on-blur behavior (`on`/`off`/`toggle`/
+  `status`, or the `follow_output` option); it re-registers or removes the
+  `WinLeave`/`TermLeave` autocmds for every existing codock terminal
 - Supports multiple AI CLI tools via codock_cmd option
